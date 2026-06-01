@@ -109,10 +109,7 @@ export function DateSchedulesModal({
                       />
                       <span className="flex-1 text-sm">
                         <span className="block font-medium text-foreground">
-                          {item.lane} · {item.name}
-                        </span>
-                        <span className="block text-xs text-muted-foreground">
-                          {item.time} · {item.seatStatus || "잔여석 정보 없음"} · {item.bookingStatus || "상태 없음"}
+                          {item.lane}
                         </span>
                         <span className="block text-xs text-muted-foreground">
                           담당 선생님: {item.coachName || "미배정"}

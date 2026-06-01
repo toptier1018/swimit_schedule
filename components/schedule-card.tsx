@@ -75,10 +75,7 @@ export function ScheduleCard({ schedule, onEdit, onDelete, onConfirm, onClassChe
                   />
                   <span className="flex-1">
                     <span className="block font-medium text-foreground">
-                      {item.lane} · {item.name}
-                    </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {item.time} · {item.seatStatus || "잔여석 정보 없음"} · {item.bookingStatus || "상태 없음"}
+                      {item.lane}
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
                       담당 선생님: {item.coachName || "미배정"}
