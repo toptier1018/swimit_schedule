@@ -9,9 +9,19 @@ interface ScheduleListProps {
   onDelete: (id: string) => void
   onConfirm: (id: string) => void
   onClassCheck: (scheduleId: string, classId: string, isChecked: boolean) => void
+  onClassCancel: (scheduleId: string, classId: string, reason: string) => void
+  isDeveloperMode: boolean
 }
 
-export function ScheduleList({ schedules, onEdit, onDelete, onConfirm, onClassCheck }: ScheduleListProps) {
+export function ScheduleList({
+  schedules,
+  onEdit,
+  onDelete,
+  onConfirm,
+  onClassCheck,
+  onClassCancel,
+  isDeveloperMode,
+}: ScheduleListProps) {
   if (schedules.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -34,6 +44,8 @@ export function ScheduleList({ schedules, onEdit, onDelete, onConfirm, onClassCh
           onDelete={onDelete}
           onConfirm={onConfirm}
           onClassCheck={onClassCheck}
+          onClassCancel={onClassCancel}
+          isDeveloperMode={isDeveloperMode}
         />
       ))}
     </div>

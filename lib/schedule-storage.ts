@@ -162,6 +162,8 @@ function normalizeClass(item: Partial<ScheduleClass>, fallbackIndex: number): Sc
     isOpen: item.isOpen ?? item.name !== "운영 없음",
     isCoachChecked: Boolean(item.isCoachChecked),
     checkedAt: item.checkedAt,
+    cancellationReason: item.cancellationReason,
+    cancelledAt: item.cancelledAt,
   }
 }
 
@@ -212,6 +214,8 @@ function mergeClassesWithAssignments(existingClasses: ScheduleClass[], sourceCla
       coachName: existingClass.coachName,
       isCoachChecked: existingClass.isCoachChecked,
       checkedAt: existingClass.checkedAt,
+      cancellationReason: existingClass.cancellationReason,
+      cancelledAt: existingClass.cancelledAt,
     }
   })
 }
@@ -337,6 +341,8 @@ export function setClassChecked(scheduleId: string, classId: string, isChecked: 
           ...item,
           isCoachChecked: isChecked,
           checkedAt: isChecked ? new Date().toISOString() : undefined,
+          cancellationReason: isChecked ? undefined : item.cancellationReason,
+          cancelledAt: isChecked ? undefined : item.cancelledAt,
         }
       : item
   )
@@ -351,6 +357,39 @@ export function setClassChecked(scheduleId: string, classId: string, isChecked: 
     scheduleId,
     classId,
     isChecked,
+  })
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
+  return schedules[scheduleIndex]
+}
+
+export function cancelClassAssignment(scheduleId: string, classId: string, reason: string): Schedule | null {
+  const schedules = getSchedules()
+  const scheduleIndex = schedules.findIndex((s) => s.id === scheduleId)
+  if (scheduleIndex === -1) return null
+
+  const schedule = schedules[scheduleIndex]
+  const classes = schedule.classes.map((item) =>
+    item.id === classId
+      ? {
+          ...item,
+          isCoachChecked: false,
+          checkedAt: undefined,
+          cancellationReason: reason,
+          cancelledAt: new Date().toISOString(),
+        }
+      : item
+  )
+
+  schedules[scheduleIndex] = {
+    ...schedule,
+    classes,
+    updatedAt: new Date().toISOString(),
+  }
+
+  console.info("[ScheduleSync] 코치 배정 취소 사유가 저장되었습니다.", {
+    scheduleId,
+    classId,
+    reason,
   })
   localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
   return schedules[scheduleIndex]

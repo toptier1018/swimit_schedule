@@ -22,12 +22,14 @@ export default function Home() {
     editSchedule,
     confirmSchedule,
     checkScheduleClass,
+    cancelScheduleClass,
     syncFromSite,
     dismissChange 
   } = useSchedules()
   
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSchedules, setSelectedSchedules] = useState<Schedule[]>([])
+  const [isDeveloperMode, setIsDeveloperMode] = useState(false)
 
   const handleAddSchedule = (data: {
     date: string
@@ -58,6 +60,10 @@ export default function Home() {
 
   const handleClassCheck = (scheduleId: string, classId: string, isChecked: boolean) => {
     checkScheduleClass(scheduleId, classId, isChecked)
+  }
+
+  const handleClassCancel = (scheduleId: string, classId: string, reason: string) => {
+    cancelScheduleClass(scheduleId, classId, reason)
   }
 
   const handleSync = () => {
@@ -107,23 +113,41 @@ export default function Home() {
               <Calendar className="h-6 w-6" />
               <div>
                 <h1 className="text-xl font-semibold">스윔잇 특강 스케줄</h1>
-                <p className="text-sm text-primary-foreground/80">일정, 클래스 시간표, 코치 확인을 한 번에 관리해요</p>
+                <p className="text-sm text-primary-foreground/80">
+                  {isDeveloperMode
+                    ? "개발자 모드: 선생님 배정과 일정 수정을 할 수 있어요"
+                    : "코치님은 배정된 레인을 확인하거나 취소 사유를 남길 수 있어요"}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:flex">
-              <Button variant="secondary" onClick={handleSync} className="bg-card text-foreground hover:bg-card/90">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                사이트 일정 동기화
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  console.info("[DeveloperMode] 개발자 모드 전환", { nextValue: !isDeveloperMode })
+                  setIsDeveloperMode((current) => !current)
+                }}
+                className="bg-card text-foreground hover:bg-card/90"
+              >
+                {isDeveloperMode ? "일반 화면 보기" : "개발자 모드"}
               </Button>
-              <ScheduleForm 
-                onSubmit={handleAddSchedule}
-                trigger={
-                  <Button variant="secondary" className="bg-card text-foreground hover:bg-card/90">
-                    <Plus className="h-4 w-4 mr-2" />
-                    새 일정 추가
+              {isDeveloperMode && (
+                <>
+                  <Button variant="secondary" onClick={handleSync} className="bg-card text-foreground hover:bg-card/90">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    사이트 일정 동기화
                   </Button>
-                }
-              />
+                  <ScheduleForm
+                    onSubmit={handleAddSchedule}
+                    trigger={
+                      <Button variant="secondary" className="bg-card text-foreground hover:bg-card/90">
+                        <Plus className="h-4 w-4 mr-2" />
+                        새 일정 추가
+                      </Button>
+                    }
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -204,6 +228,8 @@ export default function Home() {
                       onDelete={handleDelete}
                       onConfirm={handleConfirm}
                       onClassCheck={handleClassCheck}
+                      onClassCancel={handleClassCancel}
+                      isDeveloperMode={isDeveloperMode}
                     />
                   </div>
                 ))}
@@ -227,6 +253,8 @@ export default function Home() {
           schedules={selectedSchedules}
           onConfirm={handleConfirm}
           onClassCheck={handleClassCheck}
+          onClassCancel={handleClassCancel}
+          isDeveloperMode={isDeveloperMode}
         />
       )}
 

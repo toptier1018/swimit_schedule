@@ -9,6 +9,7 @@ import {
   updateSchedule,
   confirmSchedule,
   setClassChecked,
+  cancelClassAssignment,
   syncSwimitSchedulesFromRemote,
   getChanges,
   markChangeNotified,
@@ -85,6 +86,15 @@ export function useSchedules() {
     [refresh]
   )
 
+  const cancelScheduleClass = useCallback(
+    (scheduleId: string, classId: string, reason: string) => {
+      const result = cancelClassAssignment(scheduleId, classId, reason)
+      refresh()
+      return result
+    },
+    [refresh]
+  )
+
   const syncFromSite = useCallback(async () => {
     const result = await syncSwimitSchedulesFromRemote()
     refresh()
@@ -110,6 +120,7 @@ export function useSchedules() {
     editSchedule,
     confirmSchedule: confirm,
     checkScheduleClass,
+    cancelScheduleClass,
     syncFromSite,
     dismissChange,
     refresh,

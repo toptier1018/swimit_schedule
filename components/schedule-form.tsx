@@ -98,8 +98,10 @@ export function ScheduleForm({
           isOpen: isSimpleAssignment
             ? existingClass?.isOpen ?? true
             : second !== "운영 없음" && bookingStatus !== "운영 없음",
-          isCoachChecked: existingClass?.isCoachChecked || false,
-          checkedAt: existingClass?.checkedAt,
+          isCoachChecked: existingClass?.coachName === teacherName ? existingClass?.isCoachChecked || false : false,
+          checkedAt: existingClass?.coachName === teacherName ? existingClass?.checkedAt : undefined,
+          cancellationReason: existingClass?.coachName === teacherName ? existingClass?.cancellationReason : undefined,
+          cancelledAt: existingClass?.coachName === teacherName ? existingClass?.cancelledAt : undefined,
         }
       })
       .filter(Boolean) as ScheduleClass[]
