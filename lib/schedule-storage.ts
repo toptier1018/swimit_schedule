@@ -3,7 +3,40 @@ import { Schedule, ScheduleChange, ScheduleClass } from "@/types/schedule"
 const STORAGE_KEY = "schedules"
 const CHANGES_KEY = "schedule_changes"
 
-function createSwimitLaneClasses(prefix: string, time: string): ScheduleClass[] {
+function createClass(
+  prefix: string,
+  index: number,
+  lane: string,
+  name: string,
+  time: string,
+  seatStatus: string,
+  bookingStatus: string
+): ScheduleClass {
+  return {
+    id: `${prefix}-lane-${index}`,
+    lane,
+    name,
+    time,
+    coachName: "",
+    seatStatus,
+    bookingStatus,
+    isOpen: bookingStatus !== "운영 없음",
+    isCoachChecked: false,
+  }
+}
+
+function createSwimitLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
+  if (region === "화성") {
+    return [
+      createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
+      createClass(prefix, 2, "2레인", "자유형 A (초급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "평영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "접영 A (초급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "접영 B (중급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+    ]
+  }
+
   return [
     {
       id: `${prefix}-lane-1`,
@@ -72,7 +105,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     className: "수영 특강 일정",
     time: "15:00~17:00",
     coachName: "",
-    classes: createSwimitLaneClasses("swimit-gimpo-20260614", "15:00~17:00"),
+    classes: createSwimitLaneClasses("swimit-gimpo-20260614", "15:00~17:00", "김포"),
   },
   {
     date: "2026-06-21",
@@ -82,7 +115,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     className: "수영 특강 일정",
     time: "14:00~16:00",
     coachName: "",
-    classes: createSwimitLaneClasses("swimit-hwaseong-20260621", "14:00~16:00"),
+    classes: createSwimitLaneClasses("swimit-hwaseong-20260621", "14:00~16:00", "화성"),
   },
   {
     date: "2026-06-28",
@@ -92,7 +125,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     className: "수영 특강 일정",
     time: "14:00~16:00",
     coachName: "",
-    classes: createSwimitLaneClasses("swimit-mokdong-20260628", "14:00~16:00"),
+    classes: createSwimitLaneClasses("swimit-mokdong-20260628", "14:00~16:00", "목동"),
   },
 ]
 
@@ -149,6 +182,27 @@ function normalizeSchedule(schedule: Schedule): Schedule {
 
 function shouldReplaceSiteClasses(schedule: Schedule) {
   return schedule.classes.length === 1 && schedule.classes[0]?.name === "1부"
+}
+
+function mergeClassesWithAssignments(existingClasses: ScheduleClass[], sourceClasses: ScheduleClass[]) {
+  return sourceClasses.map((sourceClass) => {
+    const existingClass = existingClasses.find((item) => item.lane === sourceClass.lane)
+    const isSameClass =
+      existingClass?.name === sourceClass.name &&
+      existingClass?.time === sourceClass.time &&
+      existingClass?.isOpen === sourceClass.isOpen
+
+    if (!existingClass || !isSameClass) {
+      return sourceClass
+    }
+
+    return {
+      ...sourceClass,
+      coachName: existingClass.coachName,
+      isCoachChecked: existingClass.isCoachChecked,
+      checkedAt: existingClass.checkedAt,
+    }
+  })
 }
 
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
@@ -333,15 +387,21 @@ function mergeSwimitSchedules(siteSchedules: Array<Omit<Schedule, "id" | "create
   siteSchedules.forEach((siteSchedule) => {
     const existingIndex = schedules.findIndex((schedule) => isSameSiteSchedule(schedule, siteSchedule))
     if (existingIndex !== -1) {
-      if (shouldReplaceSiteClasses(schedules[existingIndex])) {
-        schedules[existingIndex] = normalizeSchedule({
-          ...schedules[existingIndex],
-          className: siteSchedule.className,
-          time: siteSchedule.time,
-          classes: siteSchedule.classes,
-          updatedAt: now,
-        })
-        addedCount += siteSchedule.classes.length - 1
+      const existingSchedule = schedules[existingIndex]
+      const mergedClasses = mergeClassesWithAssignments(existingSchedule.classes, siteSchedule.classes)
+      const classChanged = JSON.stringify(existingSchedule.classes) !== JSON.stringify(mergedClasses)
+
+      schedules[existingIndex] = normalizeSchedule({
+        ...existingSchedule,
+        className: siteSchedule.className,
+        time: siteSchedule.time,
+        address: siteSchedule.address || existingSchedule.address,
+        classes: shouldReplaceSiteClasses(existingSchedule) ? siteSchedule.classes : mergedClasses,
+        updatedAt: classChanged ? now : existingSchedule.updatedAt,
+      })
+
+      if (classChanged) {
+        addedCount += Math.max(0, siteSchedule.classes.length - existingSchedule.classes.length)
       }
       return
     }

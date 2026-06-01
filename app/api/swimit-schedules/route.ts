@@ -42,7 +42,40 @@ function makeDate(year: number, month: string, day: string) {
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
 }
 
-function createLaneClasses(prefix: string, time: string): ScheduleClass[] {
+function createClass(
+  prefix: string,
+  index: number,
+  lane: string,
+  name: string,
+  time: string,
+  seatStatus: string,
+  bookingStatus: string
+): ScheduleClass {
+  return {
+    id: `${prefix}-lane-${index}`,
+    lane,
+    name,
+    time,
+    coachName: "",
+    seatStatus,
+    bookingStatus,
+    isOpen: bookingStatus !== "운영 없음",
+    isCoachChecked: false,
+  }
+}
+
+function createLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
+  if (region === "화성") {
+    return [
+      createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
+      createClass(prefix, 2, "2레인", "자유형 A (초급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "평영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "접영 A (초급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "접영 B (중급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+    ]
+  }
+
   return [
     {
       id: `${prefix}-lane-1`,
@@ -102,11 +135,11 @@ function createLaneClasses(prefix: string, time: string): ScheduleClass[] {
   ]
 }
 
-function parseLaneClasses(block: string, prefix: string, time: string) {
+function parseLaneClasses(block: string, prefix: string, time: string, region: string) {
   const laneMatches = [...block.matchAll(/([1-9]레인)\s+(.+?)\s+(1자리 남음|2자리 남음|3자리 남음|4자리 남음|5자리 남음|6자리 남음|7자리 남음|마감임박|마감)?\s*(결제가능|예약대기|운영 없음)/g)]
 
   if (laneMatches.length === 0) {
-    return createLaneClasses(prefix, time)
+    return createLaneClasses(prefix, time, region)
   }
 
   return laneMatches.map((match, index) => {
@@ -160,7 +193,7 @@ function parseSchedules(pageText: string): Array<Omit<Schedule, "id" | "createdA
         className: "수영 특강 일정",
         time,
         coachName: "",
-        classes: parseLaneClasses(block, classPrefix, time),
+        classes: parseLaneClasses(block, classPrefix, time, center.region),
       },
     ]
   })
