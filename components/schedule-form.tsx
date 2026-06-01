@@ -53,8 +53,12 @@ export function ScheduleForm({
         {
           id: "",
           name: "1부",
+          lane: "1레인",
           time: initialData?.time || "",
           coachName: initialData?.coachName || "",
+          seatStatus: "",
+          bookingStatus: "",
+          isOpen: true,
           isCoachChecked: false,
         },
       ]
@@ -67,7 +71,9 @@ export function ScheduleForm({
     time: initialData?.time || "",
     coachName: initialData?.coachName || "",
     classLines: initialClasses
-      .map((item) => `${item.name} | ${item.time} | ${item.coachName}`)
+      .map((item) =>
+        `${item.lane} | ${item.name} | ${item.time} | ${item.seatStatus} | ${item.bookingStatus} | ${item.coachName}`
+      )
       .join("\n"),
   })
 
@@ -75,16 +81,27 @@ export function ScheduleForm({
     const parsed = formData.classLines
       .split("\n")
       .map((line, index) => {
-        const [name = "", time = "", coachName = ""] = line.split("|").map((value) => value.trim())
+        const [
+          lane = "",
+          name = "",
+          time = "",
+          seatStatus = "",
+          bookingStatus = "",
+          coachName = "",
+        ] = line.split("|").map((value) => value.trim())
         const existingClass = initialClasses[index]
 
-        if (!name && !time && !coachName) return null
+        if (!lane && !name && !time && !coachName) return null
 
         return {
           id: existingClass?.id || crypto.randomUUID(),
-          name: name || `${index + 1}부`,
+          lane: lane || `${index + 1}레인`,
+          name: name || "운영 없음",
           time: time || formData.time,
           coachName: coachName || formData.coachName,
+          seatStatus,
+          bookingStatus,
+          isOpen: name !== "운영 없음" && bookingStatus !== "운영 없음",
           isCoachChecked: existingClass?.isCoachChecked || false,
           checkedAt: existingClass?.checkedAt,
         }
@@ -96,9 +113,13 @@ export function ScheduleForm({
     return [
       {
         id: initialClasses[0]?.id || crypto.randomUUID(),
+        lane: "1레인",
         name: formData.className || "1부",
         time: formData.time,
         coachName: formData.coachName,
+        seatStatus: "",
+        bookingStatus: "",
+        isOpen: true,
         isCoachChecked: initialClasses[0]?.isCoachChecked || false,
         checkedAt: initialClasses[0]?.checkedAt,
       },
@@ -135,7 +156,7 @@ export function ScheduleForm({
         className: "",
         time: "",
         coachName: "",
-        classLines: "1부 |  | ",
+        classLines: "1레인 | 클래스명 | 시간 | 잔여석 | 결제상태 | 담당 선생님",
       })
     }
   }
@@ -264,7 +285,6 @@ export function ScheduleForm({
                 placeholder="코치 이름"
                 value={formData.coachName}
                 onChange={(e) => setFormData({ ...formData, coachName: e.target.value })}
-                required
                 className="border-input bg-card"
               />
             </div>
@@ -277,13 +297,13 @@ export function ScheduleForm({
             </Label>
             <Textarea
               id="classLines"
-              placeholder={"예: 1부 | 15:00~17:00 | 김코치\n예: 2부 | 17:30~19:30 | 박코치"}
+              placeholder={"예: 1레인 | 평영 A (초급) | 15:00~17:00 | 1자리 남음 | 결제가능 | 김코치\n예: 5레인 | 운영 없음 | 15:00~17:00 |  | 운영 없음 | "}
               value={formData.classLines}
               onChange={(e) => setFormData({ ...formData, classLines: e.target.value })}
               className="min-h-24 border-input bg-card"
             />
             <p className="text-xs text-muted-foreground">
-              한 줄에 하나씩 `클래스명 | 시간 | 담당 코치` 순서로 입력하세요.
+              한 줄에 하나씩 `레인 | 클래스명 | 시간 | 잔여석 | 결제상태 | 담당 선생님` 순서로 입력하세요.
             </p>
           </div>
 

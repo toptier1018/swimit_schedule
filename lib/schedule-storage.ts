@@ -3,6 +3,66 @@ import { Schedule, ScheduleChange, ScheduleClass } from "@/types/schedule"
 const STORAGE_KEY = "schedules"
 const CHANGES_KEY = "schedule_changes"
 
+function createSwimitLaneClasses(prefix: string, time: string): ScheduleClass[] {
+  return [
+    {
+      id: `${prefix}-lane-1`,
+      lane: "1레인",
+      name: "평영 A (초급)",
+      time,
+      coachName: "",
+      seatStatus: "1자리 남음",
+      bookingStatus: "결제가능",
+      isOpen: true,
+      isCoachChecked: false,
+    },
+    {
+      id: `${prefix}-lane-2`,
+      lane: "2레인",
+      name: "접영 A (초급)",
+      time,
+      coachName: "",
+      seatStatus: "마감",
+      bookingStatus: "예약대기",
+      isOpen: true,
+      isCoachChecked: false,
+    },
+    {
+      id: `${prefix}-lane-3`,
+      lane: "3레인",
+      name: "접영 B (중급)",
+      time,
+      coachName: "",
+      seatStatus: "2자리 남음",
+      bookingStatus: "결제가능",
+      isOpen: true,
+      isCoachChecked: false,
+    },
+    {
+      id: `${prefix}-lane-4`,
+      lane: "4레인",
+      name: "자유형 A (초급)",
+      time,
+      coachName: "",
+      seatStatus: "마감임박",
+      bookingStatus: "결제가능",
+      isOpen: true,
+      isCoachChecked: false,
+    },
+    {
+      id: `${prefix}-lane-5`,
+      lane: "5레인",
+      name: "운영 없음",
+      time,
+      coachName: "",
+      seatStatus: "",
+      bookingStatus: "운영 없음",
+      isOpen: false,
+      isCoachChecked: false,
+    },
+  ]
+}
+
 const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">> = [
   {
     date: "2026-06-14",
@@ -12,15 +72,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     className: "수영 특강 일정",
     time: "15:00~17:00",
     coachName: "",
-    classes: [
-      {
-        id: "swimit-gimpo-20260614-1",
-        name: "1부",
-        time: "15:00~17:00",
-        coachName: "",
-        isCoachChecked: false,
-      },
-    ],
+    classes: createSwimitLaneClasses("swimit-gimpo-20260614", "15:00~17:00"),
   },
   {
     date: "2026-06-21",
@@ -30,15 +82,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     className: "수영 특강 일정",
     time: "14:00~16:00",
     coachName: "",
-    classes: [
-      {
-        id: "swimit-hwaseong-20260621-1",
-        name: "1부",
-        time: "14:00~16:00",
-        coachName: "",
-        isCoachChecked: false,
-      },
-    ],
+    classes: createSwimitLaneClasses("swimit-hwaseong-20260621", "14:00~16:00"),
   },
   {
     date: "2026-06-28",
@@ -48,15 +92,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     className: "수영 특강 일정",
     time: "14:00~16:00",
     coachName: "",
-    classes: [
-      {
-        id: "swimit-mokdong-20260628-1",
-        name: "1부",
-        time: "14:00~16:00",
-        coachName: "",
-        isCoachChecked: false,
-      },
-    ],
+    classes: createSwimitLaneClasses("swimit-mokdong-20260628", "14:00~16:00"),
   },
 ]
 
@@ -68,8 +104,12 @@ function normalizeClass(item: Partial<ScheduleClass>, fallbackIndex: number): Sc
   return {
     id: item.id || createId(),
     name: item.name || `${fallbackIndex + 1}부`,
+    lane: item.lane || `${fallbackIndex + 1}레인`,
     time: item.time || "",
     coachName: item.coachName || "",
+    seatStatus: item.seatStatus || "",
+    bookingStatus: item.bookingStatus || "",
+    isOpen: item.isOpen ?? item.name !== "운영 없음",
     isCoachChecked: Boolean(item.isCoachChecked),
     checkedAt: item.checkedAt,
   }
@@ -101,6 +141,10 @@ function normalizeSchedule(schedule: Schedule): Schedule {
   }
 }
 
+function shouldReplaceSiteClasses(schedule: Schedule) {
+  return schedule.classes.length === 1 && schedule.classes[0]?.name === "1부"
+}
+
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
   return (
     schedule.date === siteSchedule.date &&
@@ -119,7 +163,7 @@ export function getSchedules(): Schedule[] {
 
   const schedules = JSON.parse(data).map(normalizeSchedule)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-  return schedules
+  return syncSwimitSchedules()
 }
 
 export function saveSchedule(schedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">): Schedule {
@@ -247,8 +291,20 @@ export function syncSwimitSchedules(): Schedule[] {
   let addedCount = 0
 
   SWIMIT_SITE_SCHEDULES.forEach((siteSchedule) => {
-    const exists = schedules.some((schedule) => isSameSiteSchedule(schedule, siteSchedule))
-    if (exists) return
+    const existingIndex = schedules.findIndex((schedule) => isSameSiteSchedule(schedule, siteSchedule))
+    if (existingIndex !== -1) {
+      if (shouldReplaceSiteClasses(schedules[existingIndex])) {
+        schedules[existingIndex] = normalizeSchedule({
+          ...schedules[existingIndex],
+          className: siteSchedule.className,
+          time: siteSchedule.time,
+          classes: siteSchedule.classes,
+          updatedAt: now,
+        })
+        addedCount += siteSchedule.classes.length - 1
+      }
+      return
+    }
 
     schedules.push(
       normalizeSchedule({

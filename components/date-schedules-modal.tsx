@@ -95,22 +95,31 @@ export function DateSchedulesModal({
                 </div>
                 <div className="space-y-2">
                   {schedule.classes.map((item) => (
-                    <label key={item.id} className="flex items-start gap-3 rounded-md bg-card p-3">
+                    <label
+                      key={item.id}
+                      className={`flex items-start gap-3 rounded-md bg-card p-3 ${
+                        item.isOpen ? "" : "opacity-60"
+                      }`}
+                    >
                       <Checkbox
                         checked={item.isCoachChecked}
                         onCheckedChange={(checked) => onClassCheck(schedule.id, item.id, checked === true)}
                         className="mt-0.5"
+                        disabled={!item.isOpen}
                       />
                       <span className="flex-1 text-sm">
                         <span className="block font-medium text-foreground">
-                          {item.name} · {item.time}
+                          {item.lane} · {item.name}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          담당 코치: {item.coachName || "미배정"}
+                        <span className="block text-xs text-muted-foreground">
+                          {item.time} · {item.seatStatus || "잔여석 정보 없음"} · {item.bookingStatus || "상태 없음"}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          담당 선생님: {item.coachName || "미배정"}
                         </span>
                       </span>
-                      <Badge variant={item.isCoachChecked ? "default" : "secondary"} className="shrink-0">
-                        {item.isCoachChecked ? "확인 완료" : "확인 필요"}
+                      <Badge variant={item.isCoachChecked ? "default" : "secondary"} className="shrink-0 whitespace-nowrap">
+                        {!item.isOpen ? "운영 없음" : item.isCoachChecked ? "확인 완료" : "확인 필요"}
                       </Badge>
                     </label>
                   ))}

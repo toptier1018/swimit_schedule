@@ -1,8 +1,12 @@
 export interface ScheduleClass {
   id: string
   name: string
+  lane: string
   time: string
   coachName: string
+  seatStatus: string
+  bookingStatus: string
+  isOpen: boolean
   isCoachChecked: boolean
   checkedAt?: string
 }
