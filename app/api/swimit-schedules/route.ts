@@ -3,6 +3,38 @@ import { Schedule, ScheduleClass } from "@/types/schedule"
 
 const SWIMIT_SOURCE_URL = "https://swimit.vercel.app/"
 
+interface SourceSchedule {
+  id: number
+  year: number
+  location: string
+  locationCode: string
+  dateNum: number
+  month: number
+  venue: string
+  address: string
+  scheduleSummaryLines: string[]
+}
+
+interface SourceLane {
+  lane: string
+  title: string
+  closed?: boolean
+}
+
+type SourceTable = Record<string, Array<{
+  session: string
+  time: string
+  lanes: SourceLane[]
+}>>
+
+const SEAT_STATUS_BY_LANE: Record<string, string> = {
+  "1레인": "1자리 남음",
+  "2레인": "마감임박",
+  "3레인": "2자리 남음",
+  "4레인": "마감임박",
+  "5레인": "1자리 남음",
+}
+
 const CENTER_MARKERS = [
   {
     region: "김포",
@@ -72,6 +104,17 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
       createClass(prefix, 3, "3레인", "평영 A (초급)", time, "2자리 남음", "결제가능"),
       createClass(prefix, 4, "4레인", "접영 A (초급)", time, "마감임박", "결제가능"),
       createClass(prefix, 5, "5레인", "접영 B (중급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+    ]
+  }
+
+  if (region === "목동") {
+    return [
+      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
     ]
   }
@@ -161,6 +204,98 @@ function parseLaneClasses(block: string, prefix: string, time: string, region: s
   })
 }
 
+function getRegion(locationCode: string) {
+  return locationCode || "기타"
+}
+
+function getVenue(location: string, venue: string) {
+  if (location.includes("화성")) return "수원 화성 와이풀앤와이에스씨"
+  if (location.includes("목동")) return "서울 목동스포츠센터"
+  if (location.includes("김포")) return "김포 아스타스포츠센터"
+  return location || venue
+}
+
+function getClassPrefix(source: SourceSchedule, date: string) {
+  if (source.locationCode === "김포") return `swimit-gimpo-${date.replaceAll("-", "")}`
+  if (source.locationCode === "화성") return `swimit-hwaseong-${date.replaceAll("-", "")}`
+  if (source.locationCode === "목동") return `swimit-mokdong-${date.replaceAll("-", "")}`
+  return `swimit-${source.id}-${date.replaceAll("-", "")}`
+}
+
+function getScriptUrls(html: string) {
+  return [...html.matchAll(/src="([^"]+\.js[^"]*)"/g)].map((match) => {
+    return new URL(match[1], SWIMIT_SOURCE_URL).toString()
+  })
+}
+
+function extractEmbeddedSource(script: string) {
+  const match = script.match(/let\s+\w+=(\[\{id:[\s\S]*?scheduleSummaryLines:[\s\S]*?\}\]),\w+=({[\s\S]*?}),\w+=\(\)=>/)
+  if (!match) return null
+
+  // The schedule app stores its data as JavaScript literals in the Next.js chunk.
+  const sourceSchedules = Function(`"use strict"; return (${match[1]})`)() as SourceSchedule[]
+  const sourceTable = Function(`"use strict"; return (${match[2]})`)() as SourceTable
+
+  return { sourceSchedules, sourceTable }
+}
+
+async function parseEmbeddedSchedules(html: string) {
+  for (const scriptUrl of getScriptUrls(html)) {
+    const response = await fetch(scriptUrl, { cache: "no-store" })
+    if (!response.ok) continue
+
+    const script = await response.text()
+    const embedded = extractEmbeddedSource(script)
+    if (!embedded) continue
+
+    console.info("[SwimitSource] 자바스크립트 번들에서 클래스 시간표를 찾았습니다.", {
+      scriptUrl,
+      scheduleCount: embedded.sourceSchedules.length,
+    })
+
+    return embedded.sourceSchedules.flatMap((source): Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">> => {
+      const date = makeDate(source.year, String(source.month), String(source.dateNum))
+      const sourceSessions = embedded.sourceTable[String(source.id)] || []
+      const firstTime = source.scheduleSummaryLines[0]?.replace(/^1부\s*/, "").replace(/\s+/g, "") || sourceSessions[0]?.time.replace(/\s+/g, "")
+      if (!firstTime) return []
+
+      const classPrefix = getClassPrefix(source, date)
+      const classes = sourceSessions.flatMap((session, sessionIndex) =>
+        session.lanes.map((lane, laneIndex) => {
+          const time = session.time.replace(/\s+/g, "")
+          const isClosed = Boolean(lane.closed) || !lane.title
+          const className = isClosed ? "운영 없음" : lane.title
+
+          return createClass(
+            classPrefix,
+            sessionIndex * 10 + laneIndex + 1,
+            lane.lane,
+            className,
+            time,
+            isClosed ? "" : SEAT_STATUS_BY_LANE[lane.lane] || "마감임박",
+            isClosed ? "운영 없음" : "결제가능"
+          )
+        })
+      )
+
+      return [
+        {
+          date,
+          region: getRegion(source.locationCode),
+          venue: getVenue(source.location, source.venue),
+          address: source.address,
+          className: "수영 특강 일정",
+          time: firstTime,
+          coachName: "",
+          classes,
+        },
+      ]
+    })
+  }
+
+  return []
+}
+
 function parseSchedules(pageText: string): Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">> {
   const pageYear = Number(pageText.match(/(\d{4})년\s*\d{1,2}월/)?.[1]) || new Date().getFullYear()
 
@@ -217,7 +352,8 @@ export async function GET() {
     }
 
     const html = await response.text()
-    const schedules = parseSchedules(normalizeText(html))
+    const embeddedSchedules = await parseEmbeddedSchedules(html)
+    const schedules = embeddedSchedules.length > 0 ? embeddedSchedules : parseSchedules(normalizeText(html))
 
     console.info("[SwimitSource] 스윔잇 일정표 파싱이 완료되었습니다.", {
       scheduleCount: schedules.length,
