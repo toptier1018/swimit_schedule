@@ -96,6 +96,12 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   },
 ]
 
+interface SwimitSourceResponse {
+  schedules?: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>
+  fetchedAt?: string
+  sourceUrl?: string
+}
+
 function createId() {
   return crypto.randomUUID()
 }
@@ -286,11 +292,45 @@ export function setClassChecked(scheduleId: string, classId: string, isChecked: 
 }
 
 export function syncSwimitSchedules(): Schedule[] {
+  return mergeSwimitSchedules(SWIMIT_SITE_SCHEDULES)
+}
+
+export async function syncSwimitSchedulesFromRemote(): Promise<Schedule[]> {
+  if (typeof window === "undefined") return []
+
+  try {
+    console.info("[ScheduleSync] 스윔잇 사이트에서 최신 일정표를 요청합니다.")
+
+    const response = await fetch("/api/swimit-schedules", {
+      cache: "no-store",
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Swimit schedules: ${response.status}`)
+    }
+
+    const data = (await response.json()) as SwimitSourceResponse
+    const sourceSchedules = data.schedules?.length ? data.schedules : SWIMIT_SITE_SCHEDULES
+
+    console.info("[ScheduleSync] 스윔잇 사이트 최신 일정표를 받았습니다.", {
+      sourceUrl: data.sourceUrl,
+      fetchedAt: data.fetchedAt,
+      scheduleCount: sourceSchedules.length,
+    })
+
+    return mergeSwimitSchedules(sourceSchedules)
+  } catch (error) {
+    console.warn("[ScheduleSync] 최신 일정표 요청 실패로 기본 일정표를 사용합니다.", error)
+    return syncSwimitSchedules()
+  }
+}
+
+function mergeSwimitSchedules(siteSchedules: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>): Schedule[] {
   const schedules = getSchedulesWithoutSeed()
   const now = new Date().toISOString()
   let addedCount = 0
 
-  SWIMIT_SITE_SCHEDULES.forEach((siteSchedule) => {
+  siteSchedules.forEach((siteSchedule) => {
     const existingIndex = schedules.findIndex((schedule) => isSameSiteSchedule(schedule, siteSchedule))
     if (existingIndex !== -1) {
       if (shouldReplaceSiteClasses(schedules[existingIndex])) {

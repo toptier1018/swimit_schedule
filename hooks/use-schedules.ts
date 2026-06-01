@@ -9,7 +9,7 @@ import {
   updateSchedule,
   confirmSchedule,
   setClassChecked,
-  syncSwimitSchedules,
+  syncSwimitSchedulesFromRemote,
   getChanges,
   markChangeNotified,
 } from "@/lib/schedule-storage"
@@ -28,6 +28,14 @@ export function useSchedules() {
 
   useEffect(() => {
     refresh()
+    syncSwimitSchedulesFromRemote()
+      .then(() => {
+        console.info("[ScheduleSync] 앱 시작 시 최신 스윔잇 일정표 동기화가 완료되었습니다.")
+        refresh()
+      })
+      .catch((error) => {
+        console.warn("[ScheduleSync] 앱 시작 시 최신 스윔잇 일정표 동기화에 실패했습니다.", error)
+      })
   }, [refresh])
 
   const addSchedule = useCallback(
@@ -77,8 +85,8 @@ export function useSchedules() {
     [refresh]
   )
 
-  const syncFromSite = useCallback(() => {
-    const result = syncSwimitSchedules()
+  const syncFromSite = useCallback(async () => {
+    const result = await syncSwimitSchedulesFromRemote()
     refresh()
     return result
   }, [refresh])
