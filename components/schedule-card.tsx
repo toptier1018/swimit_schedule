@@ -49,6 +49,14 @@ export function ScheduleCard({
     return `${month}월 ${day}일 (${weekday})`
   }
 
+  const formatCoachName = (name: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) return "미배정"
+    if (trimmedName.endsWith("코치님")) return trimmedName
+    if (trimmedName.endsWith("코치")) return `${trimmedName}님`
+    return `${trimmedName} 코치님`
+  }
+
   const openTeacherDialog = (item: ScheduleClass) => {
     setTeacherTargetClass(item)
     setTeacherName(item.coachName)
@@ -140,11 +148,11 @@ export function ScheduleCard({
                           onClick={() => openTeacherDialog(item)}
                           className="mt-1 block text-left text-xs text-primary underline-offset-2 hover:underline"
                         >
-                          담당 선생님: {item.coachName || "미배정"}
+                          담당 선생님: {formatCoachName(item.coachName)}
                         </button>
                       ) : (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          담당 선생님: {item.coachName || "미배정"}
+                          담당 선생님: {formatCoachName(item.coachName)}
                         </p>
                       )}
                       {item.cancellationReason && (
@@ -287,7 +295,7 @@ export function ScheduleCard({
             <div className="rounded-lg bg-muted p-3 text-sm">
               <p className="font-medium text-foreground">{teacherTargetClass?.lane}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                현재 담당: {teacherTargetClass?.coachName || "미배정"}
+                현재 담당: {formatCoachName(teacherTargetClass?.coachName || "")}
               </p>
             </div>
             <div className="space-y-2">

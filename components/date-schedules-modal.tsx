@@ -48,6 +48,14 @@ export function DateSchedulesModal({
     return `${month}월 ${day}일 (${weekday})`
   }
 
+  const formatCoachName = (name: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) return "미배정"
+    if (trimmedName.endsWith("코치님")) return trimmedName
+    if (trimmedName.endsWith("코치")) return `${trimmedName}님`
+    return `${trimmedName} 코치님`
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
@@ -117,7 +125,7 @@ export function DateSchedulesModal({
                             {item.isOpen ? `${item.lane} · ${item.name}` : item.lane}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            담당 선생님: {item.coachName || "미배정"}
+                            담당 선생님: {formatCoachName(item.coachName)}
                           </span>
                           {item.cancellationReason && (
                             <span className="mt-1 block text-xs text-destructive">
