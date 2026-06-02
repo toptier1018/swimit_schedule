@@ -228,6 +228,19 @@ function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id
   )
 }
 
+function getTodayKeyInKorea() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+}
+
+function isUpcomingSchedule(date: string) {
+  return date >= getTodayKeyInKorea()
+}
+
 export function getSchedules(): Schedule[] {
   if (typeof window === "undefined") return []
   const data = localStorage.getItem(STORAGE_KEY)
@@ -430,11 +443,12 @@ export async function syncSwimitSchedulesFromRemote(): Promise<Schedule[]> {
 }
 
 function mergeSwimitSchedules(siteSchedules: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>): Schedule[] {
-  const schedules = getSchedulesWithoutSeed()
+  const upcomingSiteSchedules = siteSchedules.filter((siteSchedule) => isUpcomingSchedule(siteSchedule.date))
+  const schedules = getSchedulesWithoutSeed().filter((schedule) => isUpcomingSchedule(schedule.date))
   const now = new Date().toISOString()
   let addedCount = 0
 
-  siteSchedules.forEach((siteSchedule) => {
+  upcomingSiteSchedules.forEach((siteSchedule) => {
     const existingIndex = schedules.findIndex((schedule) => isSameSiteSchedule(schedule, siteSchedule))
     if (existingIndex !== -1) {
       const existingSchedule = schedules[existingIndex]
@@ -467,7 +481,11 @@ function mergeSwimitSchedules(siteSchedules: Array<Omit<Schedule, "id" | "create
     addedCount += 1
   })
 
-  console.info("[ScheduleSync] 스윔잇 사이트 일정 동기화가 완료되었습니다.", { addedCount })
+  console.info("[ScheduleSync] 스윔잇 사이트 일정 동기화가 완료되었습니다.", {
+    addedCount,
+    sourceCount: siteSchedules.length,
+    upcomingCount: upcomingSiteSchedules.length,
+  })
   localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
   return schedules
 }

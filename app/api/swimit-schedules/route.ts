@@ -74,6 +74,19 @@ function makeDate(year: number, month: string, day: string) {
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
 }
 
+function getTodayKeyInKorea() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+}
+
+function isUpcomingSchedule(date: string) {
+  return date >= getTodayKeyInKorea()
+}
+
 function createClass(
   prefix: string,
   index: number,
@@ -253,8 +266,10 @@ async function parseEmbeddedSchedules(html: string) {
       scheduleCount: embedded.sourceSchedules.length,
     })
 
-    return embedded.sourceSchedules.flatMap((source): Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">> => {
+    const parsedSchedules = embedded.sourceSchedules.flatMap((source): Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">> => {
       const date = makeDate(source.year, String(source.month), String(source.dateNum))
+      if (!isUpcomingSchedule(date)) return []
+
       const sourceSessions = embedded.sourceTable[String(source.id)] || []
       const firstTime = source.scheduleSummaryLines[0]?.replace(/^1부\s*/, "").replace(/\s+/g, "") || sourceSessions[0]?.time.replace(/\s+/g, "")
       if (!firstTime) return []
@@ -291,6 +306,13 @@ async function parseEmbeddedSchedules(html: string) {
         },
       ]
     })
+
+    console.info("[SwimitSource] 지난 일정은 제외했습니다.", {
+      sourceCount: embedded.sourceSchedules.length,
+      upcomingCount: parsedSchedules.length,
+    })
+
+    return parsedSchedules
   }
 
   return []
@@ -318,6 +340,8 @@ function parseSchedules(pageText: string): Array<Omit<Schedule, "id" | "createdA
     const date = makeDate(pageYear, dateMatch[1], dateMatch[2])
     const time = timeMatch[1].replace(/\s+/g, "")
     const classPrefix = `${center.classPrefix}-${date.replaceAll("-", "")}`
+
+    if (!isUpcomingSchedule(date)) return []
 
     return [
       {
