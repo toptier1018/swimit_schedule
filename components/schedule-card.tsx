@@ -132,9 +132,19 @@ export function ScheduleCard({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{item.lane}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        담당 선생님: {item.coachName || "미배정"}
-                      </p>
+                      {isDeveloperMode && item.isOpen ? (
+                        <button
+                          type="button"
+                          onClick={() => openTeacherDialog(item)}
+                          className="mt-1 block text-left text-xs text-primary underline-offset-2 hover:underline"
+                        >
+                          담당 선생님: {item.coachName || "미배정"}
+                        </button>
+                      ) : (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          담당 선생님: {item.coachName || "미배정"}
+                        </p>
+                      )}
                       {item.cancellationReason && (
                         <p className="mt-1 text-xs text-destructive">
                           취소 사유: {item.cancellationReason}
@@ -169,19 +179,6 @@ export function ScheduleCard({
                         className="text-destructive hover:text-destructive"
                       >
                         배정 취소
-                      </Button>
-                    </div>
-                  )}
-
-                  {isDeveloperMode && item.isOpen && (
-                    <div className="mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openTeacherDialog(item)}
-                        className="w-full"
-                      >
-                        담당 선생님 변경
                       </Button>
                     </div>
                   )}
