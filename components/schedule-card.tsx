@@ -199,7 +199,11 @@ export function ScheduleCard({
                   {!isDeveloperMode && item.isOpen && (
                     <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {item.isCoachChecked ? (
-                        <Button size="sm" className="bg-accent hover:bg-accent/90" disabled>
+                        <Button
+                          size="sm"
+                          className="bg-accent hover:bg-accent/90"
+                          onClick={() => onClassCheck(schedule.id, item.id, false)}
+                        >
                           배정 완료
                         </Button>
                       ) : (
