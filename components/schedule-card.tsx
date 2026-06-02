@@ -38,6 +38,7 @@ export function ScheduleCard({
 }: ScheduleCardProps) {
   const [cancelTargetClass, setCancelTargetClass] = useState<ScheduleClass | null>(null)
   const [teacherTargetClass, setTeacherTargetClass] = useState<ScheduleClass | null>(null)
+  const [isMainTeacherDialogOpen, setIsMainTeacherDialogOpen] = useState(false)
   const [teacherName, setTeacherName] = useState("")
 
   const formatDate = (dateStr: string) => {
@@ -59,13 +60,36 @@ export function ScheduleCard({
 
   const openTeacherDialog = (item: ScheduleClass) => {
     setTeacherTargetClass(item)
+    setIsMainTeacherDialogOpen(false)
     setTeacherName(item.coachName)
   }
 
-  const saveTeacherAssignment = () => {
-    if (!teacherTargetClass) return
+  const openMainTeacherDialog = () => {
+    setTeacherTargetClass(null)
+    setIsMainTeacherDialogOpen(true)
+    setTeacherName(schedule.coachName)
+  }
 
+  const saveTeacherAssignment = () => {
     const trimmedTeacherName = teacherName.trim()
+
+    if (isMainTeacherDialogOpen) {
+      console.info("[DeveloperMode] 대표 담당 코치님을 변경합니다.", {
+        scheduleId: schedule.id,
+        previousTeacher: schedule.coachName,
+        nextTeacher: trimmedTeacherName,
+      })
+
+      onEdit(schedule.id, {
+        coachName: trimmedTeacherName,
+      })
+
+      setIsMainTeacherDialogOpen(false)
+      setTeacherName("")
+      return
+    }
+
+    if (!teacherTargetClass) return
 
     console.info("[DeveloperMode] 담당 선생님을 변경합니다.", {
       scheduleId: schedule.id,
@@ -93,6 +117,12 @@ export function ScheduleCard({
     })
 
     setTeacherTargetClass(null)
+    setTeacherName("")
+  }
+
+  const closeTeacherDialog = () => {
+    setTeacherTargetClass(null)
+    setIsMainTeacherDialogOpen(false)
     setTeacherName("")
   }
 
@@ -208,7 +238,17 @@ export function ScheduleCard({
             </div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 shrink-0" />
-              <span className="font-medium text-foreground">{schedule.coachName || "대표 코치 미배정"}</span>
+              {isDeveloperMode ? (
+                <button
+                  type="button"
+                  onClick={openMainTeacherDialog}
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  {formatCoachName(schedule.coachName)}
+                </button>
+              ) : (
+                <span className="font-medium text-foreground">{formatCoachName(schedule.coachName)}</span>
+              )}
             </div>
           </div>
         </div>
@@ -275,35 +315,34 @@ export function ScheduleCard({
         }}
       />
       <Dialog
-        open={!!teacherTargetClass}
+        open={!!teacherTargetClass || isMainTeacherDialogOpen}
         onOpenChange={(open) => {
-          if (!open) {
-            setTeacherTargetClass(null)
-            setTeacherName("")
-          }
+          if (!open) closeTeacherDialog()
         }}
       >
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               <User className="h-5 w-5" />
-              담당 선생님 변경
+              {isMainTeacherDialogOpen ? "대표 코치님 변경" : "담당 선생님 변경"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
             <div className="rounded-lg bg-muted p-3 text-sm">
-              <p className="font-medium text-foreground">{teacherTargetClass?.lane}</p>
+              <p className="font-medium text-foreground">
+                {isMainTeacherDialogOpen ? schedule.venue : teacherTargetClass?.lane}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                현재 담당: {formatCoachName(teacherTargetClass?.coachName || "")}
+                현재 담당: {formatCoachName(isMainTeacherDialogOpen ? schedule.coachName : teacherTargetClass?.coachName || "")}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`teacher-${teacherTargetClass?.id || "new"}`}>
-                담당 선생님
+              <Label htmlFor={`teacher-${teacherTargetClass?.id || "main"}`}>
+                {isMainTeacherDialogOpen ? "대표 코치님" : "담당 선생님"}
               </Label>
               <Input
-                id={`teacher-${teacherTargetClass?.id || "new"}`}
+                id={`teacher-${teacherTargetClass?.id || "main"}`}
                 value={teacherName}
                 onChange={(event) => setTeacherName(event.target.value)}
                 placeholder="예: 김코치"
@@ -316,10 +355,7 @@ export function ScheduleCard({
             <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setTeacherTargetClass(null)
-                  setTeacherName("")
-                }}
+                onClick={closeTeacherDialog}
               >
                 취소
               </Button>
