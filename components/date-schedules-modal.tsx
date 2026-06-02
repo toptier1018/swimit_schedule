@@ -114,7 +114,7 @@ export function DateSchedulesModal({
                       <div className="flex items-start justify-between gap-3">
                         <span className="flex-1 text-sm">
                           <span className="block font-medium text-foreground">
-                            {item.lane}
+                            {item.isOpen ? `${item.lane} · ${item.name}` : item.lane}
                           </span>
                           <span className="block text-xs text-muted-foreground">
                             담당 선생님: {item.coachName || "미배정"}

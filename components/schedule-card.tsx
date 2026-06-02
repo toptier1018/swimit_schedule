@@ -131,7 +131,9 @@ export function ScheduleCard({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{item.lane}</p>
+                      <p className="font-medium text-foreground">
+                        {item.isOpen ? `${item.lane} · ${item.name}` : item.lane}
+                      </p>
                       {isDeveloperMode && item.isOpen ? (
                         <button
                           type="button"
