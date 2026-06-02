@@ -6,6 +6,14 @@ import { Calendar, MapPin, Clock, User, Check, Pencil, Trash2, Building2, Clipbo
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ScheduleForm } from "./schedule-form"
 import { AssignmentCancelModal } from "./assignment-cancel-modal"
 
@@ -29,6 +37,8 @@ export function ScheduleCard({
   isDeveloperMode,
 }: ScheduleCardProps) {
   const [cancelTargetClass, setCancelTargetClass] = useState<ScheduleClass | null>(null)
+  const [teacherTargetClass, setTeacherTargetClass] = useState<ScheduleClass | null>(null)
+  const [teacherName, setTeacherName] = useState("")
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -37,6 +47,45 @@ export function ScheduleCard({
     const weekdays = ["일", "월", "화", "수", "목", "금", "토"]
     const weekday = weekdays[date.getDay()]
     return `${month}월 ${day}일 (${weekday})`
+  }
+
+  const openTeacherDialog = (item: ScheduleClass) => {
+    setTeacherTargetClass(item)
+    setTeacherName(item.coachName)
+  }
+
+  const saveTeacherAssignment = () => {
+    if (!teacherTargetClass) return
+
+    const trimmedTeacherName = teacherName.trim()
+
+    console.info("[DeveloperMode] 담당 선생님을 변경합니다.", {
+      scheduleId: schedule.id,
+      classId: teacherTargetClass.id,
+      lane: teacherTargetClass.lane,
+      previousTeacher: teacherTargetClass.coachName,
+      nextTeacher: trimmedTeacherName,
+    })
+
+    onEdit(schedule.id, {
+      classes: schedule.classes.map((item) => {
+        if (item.id !== teacherTargetClass.id) return item
+
+        const isSameTeacher = item.coachName === trimmedTeacherName
+
+        return {
+          ...item,
+          coachName: trimmedTeacherName,
+          isCoachChecked: isSameTeacher ? item.isCoachChecked : false,
+          checkedAt: isSameTeacher ? item.checkedAt : undefined,
+          cancellationReason: isSameTeacher ? item.cancellationReason : undefined,
+          cancelledAt: isSameTeacher ? item.cancelledAt : undefined,
+        }
+      }),
+    })
+
+    setTeacherTargetClass(null)
+    setTeacherName("")
   }
 
   return (
@@ -123,6 +172,19 @@ export function ScheduleCard({
                       </Button>
                     </div>
                   )}
+
+                  {isDeveloperMode && item.isOpen && (
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openTeacherDialog(item)}
+                        className="w-full"
+                      >
+                        담당 선생님 변경
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -205,6 +267,62 @@ export function ScheduleCard({
           setCancelTargetClass(null)
         }}
       />
+      <Dialog
+        open={!!teacherTargetClass}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTeacherTargetClass(null)
+            setTeacherName("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <User className="h-5 w-5" />
+              담당 선생님 변경
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="rounded-lg bg-muted p-3 text-sm">
+              <p className="font-medium text-foreground">{teacherTargetClass?.lane}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                현재 담당: {teacherTargetClass?.coachName || "미배정"}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`teacher-${teacherTargetClass?.id || "new"}`}>
+                담당 선생님
+              </Label>
+              <Input
+                id={`teacher-${teacherTargetClass?.id || "new"}`}
+                value={teacherName}
+                onChange={(event) => setTeacherName(event.target.value)}
+                placeholder="예: 김코치"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                비워서 저장하면 미배정으로 바뀝니다.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTeacherTargetClass(null)
+                  setTeacherName("")
+                }}
+              >
+                취소
+              </Button>
+              <Button onClick={saveTeacherAssignment}>
+                저장
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
