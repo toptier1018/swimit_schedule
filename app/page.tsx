@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useSchedules } from "@/hooks/use-schedules"
 import { Schedule } from "@/types/schedule"
 import { ScheduleForm } from "@/components/schedule-form"
@@ -29,7 +29,14 @@ export default function Home() {
   
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSchedules, setSelectedSchedules] = useState<Schedule[]>([])
-  const [isDeveloperMode, setIsDeveloperMode] = useState(false)
+  const [isDeveloperMode] = useState(() => {
+    if (typeof window === "undefined") return false
+    return new URLSearchParams(window.location.search).get("debug") === "true"
+  })
+
+  useEffect(() => {
+    console.info("[DeveloperMode] URL 기반 개발자 모드 상태", { isDeveloperMode })
+  }, [isDeveloperMode])
 
   const handleAddSchedule = (data: {
     date: string
@@ -121,18 +128,17 @@ export default function Home() {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:flex">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  console.info("[DeveloperMode] 개발자 모드 전환", { nextValue: !isDeveloperMode })
-                  setIsDeveloperMode((current) => !current)
-                }}
-                className="bg-card text-foreground hover:bg-card/90"
-              >
-                {isDeveloperMode ? "일반 화면 보기" : "개발자 모드"}
-              </Button>
               {isDeveloperMode && (
                 <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      window.location.href = "/"
+                    }}
+                    className="bg-card text-foreground hover:bg-card/90"
+                  >
+                    일반 화면 보기
+                  </Button>
                   <Button variant="secondary" onClick={handleSync} className="bg-card text-foreground hover:bg-card/90">
                     <RefreshCw className="h-4 w-4 mr-2" />
                     사이트 일정 동기화
