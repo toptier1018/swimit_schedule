@@ -111,16 +111,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground py-5 px-4">
-        <div className="max-w-6xl mx-auto">
+      <header className="bg-primary px-4 py-4 text-primary-foreground sm:py-5">
+        <div className="mx-auto max-w-lg sm:max-w-6xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Calendar className="h-6 w-6" />
               <div>
-                <h1 className="text-xl font-semibold">스윔잇 특강 스케줄</h1>
-                <p className="text-sm text-primary-foreground/80">
+                <h1 className="text-lg font-semibold sm:text-xl">스윔잇 특강 스케줄</h1>
+                <p className="text-xs text-primary-foreground/80 sm:text-sm">
                   {isDeveloperMode
                     ? "개발자 모드: 선생님 배정과 일정 수정을 할 수 있어요"
                     : "코치님은 배정된 레인을 확인하거나 취소 사유를 남길 수 있어요"}
@@ -159,27 +159,27 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-4">
+      <main className="mx-auto max-w-lg px-3 py-4 sm:max-w-6xl sm:px-4 sm:py-6">
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-5 sm:grid-cols-4 sm:gap-3">
           <Card className="border-border bg-card">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <p className="text-xs text-muted-foreground">전체 일정</p>
-              <p className="text-2xl font-semibold text-foreground">{schedules.length}</p>
+              <p className="text-xl font-semibold text-foreground sm:text-2xl">{schedules.length}</p>
             </CardContent>
           </Card>
           <Card className="border-border bg-card">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <p className="text-xs text-muted-foreground">클래스</p>
-              <p className="text-2xl font-semibold text-foreground">{totalClasses}</p>
+              <p className="text-xl font-semibold text-foreground sm:text-2xl">{totalClasses}</p>
             </CardContent>
           </Card>
-          <Card className="border-border bg-card col-span-2">
-            <CardContent className="p-4">
+          <Card className="col-span-2 border-border bg-card">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 text-accent">
                 <CheckCircle2 className="h-4 w-4" />
                 <p className="text-xs">코치 확인</p>
               </div>
-              <p className="text-2xl font-semibold text-foreground">{checkedClasses}/{totalClasses}</p>
+              <p className="text-xl font-semibold text-foreground sm:text-2xl">{checkedClasses}/{totalClasses}</p>
             </CardContent>
           </Card>
         </div>

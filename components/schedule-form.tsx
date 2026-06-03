@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ScheduleClass } from "@/types/schedule"
-import { Calendar, MapPin, Clock, User, Building2 } from "lucide-react"
+import { Calendar, MapPin, Clock, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -257,35 +257,19 @@ export function ScheduleForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="className" className="flex items-center gap-2 text-muted-foreground">
-                클래스
-              </Label>
-              <Input
-                id="className"
-                type="text"
-                placeholder="예: 수영 특강 일정"
-                value={formData.className}
-                onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                required
-                className="border-input bg-card"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="coachName" className="flex items-center gap-2 text-muted-foreground">
-                <User className="h-4 w-4" />
-                코치명
-              </Label>
-              <Input
-                id="coachName"
-                type="text"
-                placeholder="코치 이름"
-                value={formData.coachName}
-                onChange={(e) => setFormData({ ...formData, coachName: e.target.value })}
-                className="border-input bg-card"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="className" className="flex items-center gap-2 text-muted-foreground">
+              클래스
+            </Label>
+            <Input
+              id="className"
+              type="text"
+              placeholder="예: 수영 특강 일정"
+              value={formData.className}
+              onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+              required
+              className="border-input bg-card"
+            />
           </div>
 
           <div className="space-y-2">

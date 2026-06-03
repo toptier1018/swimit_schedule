@@ -6,6 +6,12 @@ import './globals.css'
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover' as const,
+}
+
 export const metadata: Metadata = {
   title: '수영 특강 스케줄 관리',
   description: '수영 특강 일정 및 코치 배정 관리 시스템',
@@ -36,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="bg-background">
-      <body className="font-sans antialiased">
+      <body className="min-h-dvh font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

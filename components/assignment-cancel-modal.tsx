@@ -43,7 +43,7 @@ export function AssignmentCancelModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="mx-auto w-[calc(100%-2rem)] max-w-md sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
@@ -61,11 +61,11 @@ export function AssignmentCancelModal({
             placeholder="예: 개인 사정으로 참석이 어렵습니다."
             className="min-h-28"
           />
-          <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="grid grid-cols-1 gap-3">
+            <Button variant="outline" size="lg" className="h-12 text-base" onClick={() => onOpenChange(false)}>
               닫기
             </Button>
-            <Button variant="destructive" onClick={handleSubmit}>
+            <Button variant="destructive" size="lg" className="h-12 text-base" onClick={handleSubmit}>
               배정 취소
             </Button>
           </div>
