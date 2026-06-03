@@ -21,18 +21,24 @@ export function useSchedules() {
   const [isLoading, setIsLoading] = useState(true)
   const [pendingChange, setPendingChange] = useState<ScheduleChange | null>(null)
 
-  const refresh = useCallback(() => {
-    setSchedules(getSchedules())
-    setChanges(getChanges())
-    setIsLoading(false)
+  const refresh = useCallback(async () => {
+    try {
+      const [nextSchedules, nextChanges] = await Promise.all([getSchedules(), getChanges()])
+      setSchedules(nextSchedules)
+      setChanges(nextChanges)
+    } catch (error) {
+      console.error("[ScheduleSync] 데이터 새로고침 실패", error)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   useEffect(() => {
-    refresh()
+    void refresh()
     syncSwimitSchedulesFromRemote()
       .then(() => {
         console.info("[ScheduleSync] 앱 시작 시 최신 스윔잇 일정표 동기화가 완료되었습니다.")
-        refresh()
+        return refresh()
       })
       .catch((error) => {
         console.warn("[ScheduleSync] 앱 시작 시 최신 스윔잇 일정표 동기화에 실패했습니다.", error)
@@ -40,56 +46,56 @@ export function useSchedules() {
   }, [refresh])
 
   const addSchedule = useCallback(
-    (schedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) => {
-      const newSchedule = saveSchedule(schedule)
-      refresh()
+    async (schedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) => {
+      const newSchedule = await saveSchedule(schedule)
+      await refresh()
       return newSchedule
     },
     [refresh]
   )
 
   const removeSchedule = useCallback(
-    (id: string) => {
-      deleteSchedule(id)
-      refresh()
+    async (id: string) => {
+      await deleteSchedule(id)
+      await refresh()
     },
     [refresh]
   )
 
   const editSchedule = useCallback(
-    (id: string, updates: Partial<Omit<Schedule, "id" | "createdAt">>) => {
-      const result = updateSchedule(id, updates)
+    async (id: string, updates: Partial<Omit<Schedule, "id" | "createdAt">>) => {
+      const result = await updateSchedule(id, updates)
       if (result.change) {
         setPendingChange(result.change)
       }
-      refresh()
+      await refresh()
       return result.schedule
     },
     [refresh]
   )
 
   const confirm = useCallback(
-    (id: string) => {
-      const result = confirmSchedule(id)
-      refresh()
+    async (id: string) => {
+      const result = await confirmSchedule(id)
+      await refresh()
       return result
     },
     [refresh]
   )
 
   const checkScheduleClass = useCallback(
-    (scheduleId: string, classId: string, isChecked: boolean) => {
-      const result = setClassChecked(scheduleId, classId, isChecked)
-      refresh()
+    async (scheduleId: string, classId: string, isChecked: boolean) => {
+      const result = await setClassChecked(scheduleId, classId, isChecked)
+      await refresh()
       return result
     },
     [refresh]
   )
 
   const cancelScheduleClass = useCallback(
-    (scheduleId: string, classId: string, reason: string) => {
-      const result = cancelClassAssignment(scheduleId, classId, reason)
-      refresh()
+    async (scheduleId: string, classId: string, reason: string) => {
+      const result = await cancelClassAssignment(scheduleId, classId, reason)
+      await refresh()
       return result
     },
     [refresh]
@@ -97,15 +103,15 @@ export function useSchedules() {
 
   const syncFromSite = useCallback(async () => {
     const result = await syncSwimitSchedulesFromRemote()
-    refresh()
+    await refresh()
     return result
   }, [refresh])
 
   const dismissChange = useCallback(
-    (id: string) => {
-      markChangeNotified(id)
+    async (id: string) => {
+      await markChangeNotified(id)
       setPendingChange(null)
-      refresh()
+      await refresh()
     },
     [refresh]
   )

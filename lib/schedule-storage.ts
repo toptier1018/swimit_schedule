@@ -1,4 +1,14 @@
 import { Schedule, ScheduleChange, ScheduleClass } from "@/types/schedule"
+import { isSupabaseConfigured } from "@/lib/supabase/client"
+import {
+  deleteScheduleFromDb,
+  fetchAllSchedulesFromDb,
+  fetchChangesFromDb,
+  persistSchedulesInDb,
+  updateChangeNotifiedInDb,
+  upsertChangeInDb,
+  upsertScheduleInDb,
+} from "@/lib/supabase/schedule-repository"
 
 const STORAGE_KEY = "schedules"
 const CHANGES_KEY = "schedule_changes"
@@ -241,55 +251,98 @@ function isUpcomingSchedule(date: string) {
   return date >= getTodayKeyInKorea()
 }
 
-export function getSchedules(): Schedule[] {
+function readLocalSchedules(): Schedule[] {
   if (typeof window === "undefined") return []
   const data = localStorage.getItem(STORAGE_KEY)
-  if (!data) {
-    console.info("[ScheduleSync] 기본 스윔잇 공개 일정을 불러옵니다.")
+  return data ? JSON.parse(data).map(normalizeSchedule) : []
+}
+
+async function migrateLocalStorageToSupabaseIfNeeded(): Promise<void> {
+  if (typeof window === "undefined" || !isSupabaseConfigured()) return
+
+  const existing = await fetchAllSchedulesFromDb()
+  if (existing.length > 0) return
+
+  const localSchedules = readLocalSchedules()
+  if (localSchedules.length === 0) return
+
+  await persistSchedulesInDb(localSchedules)
+  console.info("[Supabase] 브라우저에 있던 일정을 Supabase로 옮겼습니다.", {
+    count: localSchedules.length,
+  })
+}
+
+export async function getSchedules(): Promise<Schedule[]> {
+  if (typeof window === "undefined") return []
+
+  if (!isSupabaseConfigured()) {
+    console.warn("[ScheduleSync] Supabase 미설정 — localStorage를 사용합니다.")
+    const data = localStorage.getItem(STORAGE_KEY)
+    if (!data) return syncSwimitSchedules()
+    const schedules = JSON.parse(data).map(normalizeSchedule)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
     return syncSwimitSchedules()
   }
 
-  const schedules = JSON.parse(data).map(normalizeSchedule)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-  return syncSwimitSchedules()
+  await migrateLocalStorageToSupabaseIfNeeded()
+  let schedules = await fetchAllSchedulesFromDb()
+
+  if (schedules.length === 0) {
+    console.info("[ScheduleSync] DB가 비어 있어 기본 스윔잇 일정을 넣습니다.")
+    return syncSwimitSchedules()
+  }
+
+  schedules = schedules.map(normalizeSchedule)
+  return syncSwimitSchedulesWithExisting(schedules)
 }
 
-export function saveSchedule(schedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">): Schedule {
-  const schedules = getSchedules()
+export async function saveSchedule(
+  schedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">
+): Promise<Schedule> {
   const newSchedule = normalizeSchedule({
     ...schedule,
     id: createId(),
     isConfirmed: false,
     createdAt: new Date().toISOString(),
   })
-  schedules.push(newSchedule)
+
+  if (isSupabaseConfigured()) {
+    await upsertScheduleInDb(newSchedule)
+  } else {
+    const schedules = readLocalSchedules()
+    schedules.push(newSchedule)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
+  }
+
   console.info("[ScheduleSync] 새 일정이 저장되었습니다.", {
     date: newSchedule.date,
     venue: newSchedule.venue,
     classCount: newSchedule.classes.length,
   })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
   return newSchedule
 }
 
-export function deleteSchedule(id: string): void {
-  const schedules = getSchedules()
-  const filtered = schedules.filter((s) => s.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+export async function deleteSchedule(id: string): Promise<void> {
+  if (isSupabaseConfigured()) {
+    await deleteScheduleFromDb(id)
+    return
+  }
+
+  const schedules = readLocalSchedules().filter((s) => s.id !== id)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
 }
 
-export function updateSchedule(
-  id: string, 
+export async function updateSchedule(
+  id: string,
   updates: Partial<Omit<Schedule, "id" | "createdAt">>
-): { schedule: Schedule | null; change: ScheduleChange | null } {
-  const schedules = getSchedules()
+): Promise<{ schedule: Schedule | null; change: ScheduleChange | null }> {
+  const schedules = isSupabaseConfigured() ? await fetchAllSchedulesFromDb() : readLocalSchedules()
   const index = schedules.findIndex((s) => s.id === id)
   if (index === -1) return { schedule: null, change: null }
-  
+
   const oldSchedule = schedules[index]
   let change: ScheduleChange | null = null
-  
-  // Track coach changes
+
   if (updates.coachName && updates.coachName !== oldSchedule.coachName) {
     change = {
       id: crypto.randomUUID(),
@@ -299,9 +352,9 @@ export function updateSchedule(
       changedAt: new Date().toISOString(),
       notified: false,
     }
-    saveChange(change)
+    await saveChange(change)
   }
-  
+
   const mergedClasses = updates.classes?.map((item, classIndex) =>
     normalizeClass(
       {
@@ -312,38 +365,57 @@ export function updateSchedule(
     )
   )
 
-  schedules[index] = normalizeSchedule({ 
-    ...oldSchedule, 
+  const updated = normalizeSchedule({
+    ...oldSchedule,
     ...updates,
     ...(mergedClasses ? { classes: mergedClasses } : {}),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   })
+
+  schedules[index] = updated
+
+  if (isSupabaseConfigured()) {
+    await upsertScheduleInDb(updated)
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
+  }
+
   console.info("[ScheduleSync] 일정이 수정되었습니다.", {
     scheduleId: id,
-    date: schedules[index].date,
-    venue: schedules[index].venue,
+    date: updated.date,
+    venue: updated.venue,
   })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-  return { schedule: schedules[index], change }
+  return { schedule: updated, change }
 }
 
-export function confirmSchedule(id: string): Schedule | null {
-  const schedules = getSchedules()
+export async function confirmSchedule(id: string): Promise<Schedule | null> {
+  const schedules = isSupabaseConfigured() ? await fetchAllSchedulesFromDb() : readLocalSchedules()
   const index = schedules.findIndex((s) => s.id === id)
   if (index === -1) return null
-  
-  schedules[index] = { 
-    ...schedules[index], 
+
+  const updated = {
+    ...schedules[index],
     isConfirmed: true,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   }
+  schedules[index] = updated
+
+  if (isSupabaseConfigured()) {
+    await upsertScheduleInDb(updated)
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
+  }
+
   console.info("[ScheduleSync] 일정 확정 상태가 저장되었습니다.", { scheduleId: id })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-  return schedules[index]
+  return updated
 }
 
-export function setClassChecked(scheduleId: string, classId: string, isChecked: boolean): Schedule | null {
-  const schedules = getSchedules()
+export async function setClassChecked(
+  scheduleId: string,
+  classId: string,
+  isChecked: boolean
+): Promise<Schedule | null> {
+  const schedules = isSupabaseConfigured() ? await fetchAllSchedulesFromDb() : readLocalSchedules()
   const scheduleIndex = schedules.findIndex((s) => s.id === scheduleId)
   if (scheduleIndex === -1) return null
 
@@ -360,10 +432,17 @@ export function setClassChecked(scheduleId: string, classId: string, isChecked: 
       : item
   )
 
-  schedules[scheduleIndex] = {
+  const updated = {
     ...schedule,
     classes,
     updatedAt: new Date().toISOString(),
+  }
+  schedules[scheduleIndex] = updated
+
+  if (isSupabaseConfigured()) {
+    await upsertScheduleInDb(updated)
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
   }
 
   console.info("[ScheduleSync] 코치 클래스 확인 상태가 저장되었습니다.", {
@@ -371,12 +450,15 @@ export function setClassChecked(scheduleId: string, classId: string, isChecked: 
     classId,
     isChecked,
   })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-  return schedules[scheduleIndex]
+  return updated
 }
 
-export function cancelClassAssignment(scheduleId: string, classId: string, reason: string): Schedule | null {
-  const schedules = getSchedules()
+export async function cancelClassAssignment(
+  scheduleId: string,
+  classId: string,
+  reason: string
+): Promise<Schedule | null> {
+  const schedules = isSupabaseConfigured() ? await fetchAllSchedulesFromDb() : readLocalSchedules()
   const scheduleIndex = schedules.findIndex((s) => s.id === scheduleId)
   if (scheduleIndex === -1) return null
 
@@ -393,10 +475,17 @@ export function cancelClassAssignment(scheduleId: string, classId: string, reaso
       : item
   )
 
-  schedules[scheduleIndex] = {
+  const updated = {
     ...schedule,
     classes,
     updatedAt: new Date().toISOString(),
+  }
+  schedules[scheduleIndex] = updated
+
+  if (isSupabaseConfigured()) {
+    await upsertScheduleInDb(updated)
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
   }
 
   console.info("[ScheduleSync] 코치 배정 취소 사유가 저장되었습니다.", {
@@ -404,12 +493,18 @@ export function cancelClassAssignment(scheduleId: string, classId: string, reaso
     classId,
     reason,
   })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-  return schedules[scheduleIndex]
+  return updated
 }
 
-export function syncSwimitSchedules(): Schedule[] {
-  return mergeSwimitSchedules(SWIMIT_SITE_SCHEDULES)
+export async function syncSwimitSchedules(): Promise<Schedule[]> {
+  const existing = isSupabaseConfigured()
+    ? await fetchAllSchedulesFromDb()
+    : readLocalSchedules()
+  return mergeSwimitSchedules(SWIMIT_SITE_SCHEDULES, existing)
+}
+
+async function syncSwimitSchedulesWithExisting(existing: Schedule[]): Promise<Schedule[]> {
+  return mergeSwimitSchedules(SWIMIT_SITE_SCHEDULES, existing)
 }
 
 export async function syncSwimitSchedulesFromRemote(): Promise<Schedule[]> {
@@ -435,16 +530,22 @@ export async function syncSwimitSchedulesFromRemote(): Promise<Schedule[]> {
       scheduleCount: sourceSchedules.length,
     })
 
-    return mergeSwimitSchedules(sourceSchedules)
+    const existing = isSupabaseConfigured()
+      ? await fetchAllSchedulesFromDb()
+      : readLocalSchedules()
+    return mergeSwimitSchedules(sourceSchedules, existing)
   } catch (error) {
     console.warn("[ScheduleSync] 최신 일정표 요청 실패로 기본 일정표를 사용합니다.", error)
     return syncSwimitSchedules()
   }
 }
 
-function mergeSwimitSchedules(siteSchedules: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>): Schedule[] {
+async function mergeSwimitSchedules(
+  siteSchedules: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>,
+  existingSchedules: Schedule[] = []
+): Promise<Schedule[]> {
   const upcomingSiteSchedules = siteSchedules.filter((siteSchedule) => isUpcomingSchedule(siteSchedule.date))
-  const schedules = getSchedulesWithoutSeed().filter((schedule) => isUpcomingSchedule(schedule.date))
+  const schedules = existingSchedules.filter((schedule) => isUpcomingSchedule(schedule.date))
   const now = new Date().toISOString()
   let addedCount = 0
 
@@ -486,30 +587,45 @@ function mergeSwimitSchedules(siteSchedules: Array<Omit<Schedule, "id" | "create
     sourceCount: siteSchedules.length,
     upcomingCount: upcomingSiteSchedules.length,
   })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
+
+  if (isSupabaseConfigured()) {
+    await persistSchedulesInDb(schedules)
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
+  }
+
   return schedules
 }
 
-function getSchedulesWithoutSeed(): Schedule[] {
-  if (typeof window === "undefined") return []
-  const data = localStorage.getItem(STORAGE_KEY)
-  return data ? JSON.parse(data).map(normalizeSchedule) : []
-}
+async function saveChange(change: ScheduleChange): Promise<void> {
+  if (isSupabaseConfigured()) {
+    await upsertChangeInDb(change)
+    return
+  }
 
-function saveChange(change: ScheduleChange): void {
-  const changes = getChanges()
+  const changes = await getChanges()
   changes.push(change)
   localStorage.setItem(CHANGES_KEY, JSON.stringify(changes))
 }
 
-export function getChanges(): ScheduleChange[] {
+export async function getChanges(): Promise<ScheduleChange[]> {
   if (typeof window === "undefined") return []
+
+  if (isSupabaseConfigured()) {
+    return fetchChangesFromDb()
+  }
+
   const data = localStorage.getItem(CHANGES_KEY)
   return data ? JSON.parse(data) : []
 }
 
-export function markChangeNotified(id: string): void {
-  const changes = getChanges()
+export async function markChangeNotified(id: string): Promise<void> {
+  if (isSupabaseConfigured()) {
+    await updateChangeNotifiedInDb(id)
+    return
+  }
+
+  const changes = await getChanges()
   const index = changes.findIndex((c) => c.id === id)
   if (index !== -1) {
     changes[index].notified = true
