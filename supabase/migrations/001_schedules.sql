@@ -1,5 +1,3 @@
--- 스윔잇 일정 앱: Supabase 테이블 + RLS (SQL Editor에서 실행)
-
 create table if not exists schedules (
   id text primary key,
   date date not null,
