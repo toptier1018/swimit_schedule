@@ -9,6 +9,8 @@ import {
   upsertChangeInDb,
   upsertScheduleInDb,
 } from "@/lib/supabase/schedule-repository"
+import { mergeNotionAssignmentsIntoSchedules } from "@/lib/notion/assignment-service"
+import { fetchNotionAssignmentsFromApi, syncScheduleToNotionApi } from "@/lib/notion/sync-client"
 
 const STORAGE_KEY = "schedules"
 const CHANGES_KEY = "schedule_changes"
@@ -251,6 +253,37 @@ function isUpcomingSchedule(date: string) {
   return date >= getTodayKeyInKorea()
 }
 
+async function mergeSchedulesWithNotion(schedules: Schedule[]): Promise<Schedule[]> {
+  const records = await fetchNotionAssignmentsFromApi()
+  if (records.length === 0) return schedules
+
+  const merged = mergeNotionAssignmentsIntoSchedules(schedules, records)
+  const changed = JSON.stringify(merged) !== JSON.stringify(schedules)
+
+  if (!changed) return merged
+
+  console.info("[Notion] 노션에 저장된 배정 정보를 일정에 반영했습니다.", {
+    recordCount: records.length,
+  })
+
+  if (isSupabaseConfigured()) {
+    await persistSchedulesInDb(merged)
+  } else if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+  }
+
+  return merged
+}
+
+async function finalizeSchedules(schedules: Schedule[]): Promise<Schedule[]> {
+  return mergeSchedulesWithNotion(schedules)
+}
+
+async function pushScheduleToNotion(schedule: Schedule | null | undefined): Promise<void> {
+  if (!schedule) return
+  await syncScheduleToNotionApi(schedule)
+}
+
 function readLocalSchedules(): Schedule[] {
   if (typeof window === "undefined") return []
   const data = localStorage.getItem(STORAGE_KEY)
@@ -278,10 +311,10 @@ export async function getSchedules(): Promise<Schedule[]> {
   if (!isSupabaseConfigured()) {
     console.warn("[ScheduleSync] Supabase 미설정 — localStorage를 사용합니다.")
     const data = localStorage.getItem(STORAGE_KEY)
-    if (!data) return syncSwimitSchedules()
+    if (!data) return finalizeSchedules(await syncSwimitSchedules())
     const schedules = JSON.parse(data).map(normalizeSchedule)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-    return syncSwimitSchedules()
+    return finalizeSchedules(await syncSwimitSchedules())
   }
 
   await migrateLocalStorageToSupabaseIfNeeded()
@@ -293,7 +326,7 @@ export async function getSchedules(): Promise<Schedule[]> {
   }
 
   schedules = schedules.map(normalizeSchedule)
-  return syncSwimitSchedulesWithExisting(schedules)
+  return finalizeSchedules(await syncSwimitSchedulesWithExisting(schedules))
 }
 
 export async function saveSchedule(
@@ -319,6 +352,7 @@ export async function saveSchedule(
     venue: newSchedule.venue,
     classCount: newSchedule.classes.length,
   })
+  await pushScheduleToNotion(newSchedule)
   return newSchedule
 }
 
@@ -385,6 +419,7 @@ export async function updateSchedule(
     date: updated.date,
     venue: updated.venue,
   })
+  await pushScheduleToNotion(updated)
   return { schedule: updated, change }
 }
 
@@ -450,6 +485,7 @@ export async function setClassChecked(
     classId,
     isChecked,
   })
+  await pushScheduleToNotion(updated)
   return updated
 }
 
@@ -493,6 +529,7 @@ export async function cancelClassAssignment(
     classId,
     reason,
   })
+  await pushScheduleToNotion(updated)
   return updated
 }
 
@@ -500,7 +537,7 @@ export async function syncSwimitSchedules(): Promise<Schedule[]> {
   const existing = isSupabaseConfigured()
     ? await fetchAllSchedulesFromDb()
     : readLocalSchedules()
-  return mergeSwimitSchedules(SWIMIT_SITE_SCHEDULES, existing)
+  return finalizeSchedules(await mergeSwimitSchedules(SWIMIT_SITE_SCHEDULES, existing))
 }
 
 async function syncSwimitSchedulesWithExisting(existing: Schedule[]): Promise<Schedule[]> {
@@ -533,7 +570,7 @@ export async function syncSwimitSchedulesFromRemote(): Promise<Schedule[]> {
     const existing = isSupabaseConfigured()
       ? await fetchAllSchedulesFromDb()
       : readLocalSchedules()
-    return mergeSwimitSchedules(sourceSchedules, existing)
+    return finalizeSchedules(await mergeSwimitSchedules(sourceSchedules, existing))
   } catch (error) {
     console.warn("[ScheduleSync] 최신 일정표 요청 실패로 기본 일정표를 사용합니다.", error)
     return syncSwimitSchedules()
@@ -593,6 +630,8 @@ async function mergeSwimitSchedules(
   } else {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
   }
+
+  await Promise.all(schedules.map((schedule) => pushScheduleToNotion(schedule)))
 
   return schedules
 }
