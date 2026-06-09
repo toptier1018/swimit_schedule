@@ -41,6 +41,16 @@ type ScheduleChangeRow = {
   notified: boolean
 }
 
+let supportsStudentSuppliesColumn: boolean | null = null
+
+function isMissingStudentSuppliesColumn(error: { code?: string; message?: string }) {
+  return error.code === "PGRST204" && (error.message?.includes("student_supplies") ?? false)
+}
+
+function stripStudentSupplies<T extends { student_supplies?: string[] | null }>(rows: T[]) {
+  return rows.map(({ student_supplies: _removed, ...rest }) => rest)
+}
+
 function rowToClass(row: ScheduleClassRow): ScheduleClass {
   return {
     id: row.id,
@@ -195,9 +205,28 @@ export async function upsertScheduleInDb(schedule: Schedule): Promise<void> {
   }
 
   if (classRows.length > 0) {
-    const { error: classError } = await supabase
+    const rowsToSave =
+      supportsStudentSuppliesColumn === false
+        ? stripStudentSupplies(classRows)
+        : classRows
+
+    let { error: classError } = await supabase
       .from("schedule_classes")
-      .upsert(classRows, { onConflict: "id" })
+      .upsert(rowsToSave, { onConflict: "id" })
+
+    if (classError && isMissingStudentSuppliesColumn(classError)) {
+      supportsStudentSuppliesColumn = false
+      console.warn(
+        "[Supabase] student_supplies 컬럼이 없습니다. 준비물 없이 저장합니다. supabase/migrations/002_student_supplies.sql 을 실행하세요."
+      )
+      const retry = await supabase
+        .from("schedule_classes")
+        .upsert(stripStudentSupplies(classRows), { onConflict: "id" })
+      classError = retry.error
+    } else if (!classError) {
+      supportsStudentSuppliesColumn = true
+    }
+
     if (classError) {
       console.error("[Supabase] 클래스 저장 실패", { scheduleId: schedule.id, classError })
       throw classError
