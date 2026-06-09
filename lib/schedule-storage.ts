@@ -174,6 +174,7 @@ function normalizeClass(item: Partial<ScheduleClass>, fallbackIndex: number): Sc
     isOpen: item.isOpen ?? item.name !== "운영 없음",
     isCoachChecked: Boolean(item.isCoachChecked),
     checkedAt: item.checkedAt,
+    studentSupplies: item.studentSupplies ?? [],
     cancellationReason: item.cancellationReason,
     cancelledAt: item.cancelledAt,
   }
@@ -226,6 +227,7 @@ function mergeClassesWithAssignments(existingClasses: ScheduleClass[], sourceCla
       coachName: existingClass.coachName,
       isCoachChecked: existingClass.isCoachChecked,
       checkedAt: existingClass.checkedAt,
+      studentSupplies: existingClass.studentSupplies,
       cancellationReason: existingClass.cancellationReason,
       cancelledAt: existingClass.cancelledAt,
     }
@@ -448,7 +450,8 @@ export async function confirmSchedule(id: string): Promise<Schedule | null> {
 export async function setClassChecked(
   scheduleId: string,
   classId: string,
-  isChecked: boolean
+  isChecked: boolean,
+  studentSupplies?: string[]
 ): Promise<Schedule | null> {
   const schedules = isSupabaseConfigured() ? await fetchAllSchedulesFromDb() : readLocalSchedules()
   const scheduleIndex = schedules.findIndex((s) => s.id === scheduleId)
@@ -461,6 +464,7 @@ export async function setClassChecked(
           ...item,
           isCoachChecked: isChecked,
           checkedAt: isChecked ? new Date().toISOString() : undefined,
+          studentSupplies: isChecked ? studentSupplies ?? [] : [],
           cancellationReason: isChecked ? undefined : item.cancellationReason,
           cancelledAt: isChecked ? undefined : item.cancelledAt,
         }
@@ -484,6 +488,7 @@ export async function setClassChecked(
     scheduleId,
     classId,
     isChecked,
+    studentSupplies: isChecked ? studentSupplies ?? [] : [],
   })
   await pushScheduleToNotion(updated)
   return updated

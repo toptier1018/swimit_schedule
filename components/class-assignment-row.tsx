@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ScheduleClass } from "@/types/schedule"
 import { formatCoachName } from "@/lib/format-coach-name"
+import { formatStudentSupplies } from "@/lib/student-supplies"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AssignmentCancelModal } from "./assignment-cancel-modal"
@@ -13,7 +14,12 @@ interface ClassAssignmentRowProps {
   item: ScheduleClass
   isDeveloperMode: boolean
   onEditTeacher?: (item: ScheduleClass) => void
-  onClassCheck: (scheduleId: string, classId: string, isChecked: boolean) => void
+  onClassCheck: (
+    scheduleId: string,
+    classId: string,
+    isChecked: boolean,
+    studentSupplies?: string[]
+  ) => void
   onClassCancel: (scheduleId: string, classId: string, reason: string) => void
 }
 
@@ -59,6 +65,12 @@ export function ClassAssignmentRow({
                   {formatCoachName(item.coachName)}
                 </p>
               </div>
+            )}
+
+            {item.isCoachChecked && item.studentSupplies && item.studentSupplies.length > 0 && (
+              <p className="mt-2 text-sm text-primary">
+                수강생 준비물: {formatStudentSupplies(item.studentSupplies)}
+              </p>
             )}
 
             {item.cancellationReason && (
@@ -111,8 +123,9 @@ export function ClassAssignmentRow({
         open={isConfirmOpen}
         coachName={item.coachName}
         classLabel={classLabel}
+        initialSupplies={item.studentSupplies}
         onOpenChange={setIsConfirmOpen}
-        onConfirm={() => onClassCheck(scheduleId, item.id, true)}
+        onConfirm={(studentSupplies) => onClassCheck(scheduleId, item.id, true, studentSupplies)}
       />
 
       <AssignmentCancelModal

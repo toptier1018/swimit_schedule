@@ -9,6 +9,7 @@ export interface ScheduleClass {
   isOpen: boolean
   isCoachChecked: boolean
   checkedAt?: string
+  studentSupplies?: string[]
   cancellationReason?: string
   cancelledAt?: string
 }

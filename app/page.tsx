@@ -65,8 +65,13 @@ export default function Home() {
     confirmSchedule(id)
   }
 
-  const handleClassCheck = (scheduleId: string, classId: string, isChecked: boolean) => {
-    checkScheduleClass(scheduleId, classId, isChecked)
+  const handleClassCheck = (
+    scheduleId: string,
+    classId: string,
+    isChecked: boolean,
+    studentSupplies?: string[]
+  ) => {
+    checkScheduleClass(scheduleId, classId, isChecked, studentSupplies)
   }
 
   const handleClassCancel = (scheduleId: string, classId: string, reason: string) => {

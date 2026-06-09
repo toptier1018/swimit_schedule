@@ -84,8 +84,13 @@ export function useSchedules() {
   )
 
   const checkScheduleClass = useCallback(
-    async (scheduleId: string, classId: string, isChecked: boolean) => {
-      const result = await setClassChecked(scheduleId, classId, isChecked)
+    async (
+      scheduleId: string,
+      classId: string,
+      isChecked: boolean,
+      studentSupplies?: string[]
+    ) => {
+      const result = await setClassChecked(scheduleId, classId, isChecked, studentSupplies)
       await refresh()
       return result
     },

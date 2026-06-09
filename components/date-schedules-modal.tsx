@@ -18,7 +18,12 @@ interface DateSchedulesModalProps {
   date: string
   schedules: Schedule[]
   onConfirm: (id: string) => void
-  onClassCheck: (scheduleId: string, classId: string, isChecked: boolean) => void
+  onClassCheck: (
+    scheduleId: string,
+    classId: string,
+    isChecked: boolean,
+    studentSupplies?: string[]
+  ) => void
   onClassCancel: (scheduleId: string, classId: string, reason: string) => void
   isDeveloperMode: boolean
 }

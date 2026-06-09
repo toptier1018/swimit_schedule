@@ -29,6 +29,7 @@ type ScheduleClassRow = {
   checked_at: string | null
   cancellation_reason: string | null
   cancelled_at: string | null
+  student_supplies: string[] | null
 }
 
 type ScheduleChangeRow = {
@@ -54,6 +55,7 @@ function rowToClass(row: ScheduleClassRow): ScheduleClass {
     checkedAt: row.checked_at ?? undefined,
     cancellationReason: row.cancellation_reason ?? undefined,
     cancelledAt: row.cancelled_at ?? undefined,
+    studentSupplies: row.student_supplies ?? [],
   }
 }
 
@@ -72,6 +74,7 @@ function classToRow(scheduleId: string, item: ScheduleClass): ScheduleClassRow {
     checked_at: item.checkedAt ?? null,
     cancellation_reason: item.cancellationReason ?? null,
     cancelled_at: item.cancelledAt ?? null,
+    student_supplies: item.studentSupplies?.length ? item.studentSupplies : [],
   }
 }
 
