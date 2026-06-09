@@ -7,6 +7,7 @@ export interface NotionAssignmentRecord {
   isChecked: boolean
   isCancelled: boolean
   cancelReason: string
+  studentSupplies: string[]
 }
 
 export interface NotionAssignmentInput {
@@ -18,4 +19,5 @@ export interface NotionAssignmentInput {
   isChecked: boolean
   isCancelled: boolean
   cancelReason?: string
+  studentSupplies?: string[]
 }

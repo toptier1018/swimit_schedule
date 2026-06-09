@@ -9,6 +9,7 @@ import {
 } from "@/lib/notion/config"
 import { resolveVenuePlace } from "@/lib/notion/venue-place"
 import { NotionAssignmentInput, NotionAssignmentRecord } from "@/lib/notion/types"
+import { formatStudentSupplies, parseStudentSupplies } from "@/lib/student-supplies"
 
 type NotionRichText = { plain_text: string }
 type NotionPage = {
@@ -73,6 +74,9 @@ function pageToRecord(page: NotionPage): NotionAssignmentRecord {
     isChecked: readCheckbox(props[NOTION_PROPERTY_NAMES.isChecked]),
     isCancelled: readCheckbox(props[NOTION_PROPERTY_NAMES.isCancelled]),
     cancelReason: readRichText(props[NOTION_PROPERTY_NAMES.cancelReason]),
+    studentSupplies: parseStudentSupplies(
+      readRichText(props[NOTION_PROPERTY_NAMES.studentSupplies])
+    ),
   }
 }
 
@@ -90,6 +94,7 @@ export function buildAssignmentInput(schedule: Schedule, item: ScheduleClass): N
     isChecked: item.isCoachChecked,
     isCancelled: Boolean(item.cancellationReason),
     cancelReason: item.cancellationReason,
+    studentSupplies: item.studentSupplies,
   }
 }
 
@@ -120,6 +125,11 @@ function buildNotionProperties(input: NotionAssignmentInput) {
     [NOTION_PROPERTY_NAMES.cancelReason]: {
       rich_text: input.cancelReason
         ? [{ text: { content: input.cancelReason } }]
+        : [],
+    },
+    [NOTION_PROPERTY_NAMES.studentSupplies]: {
+      rich_text: input.studentSupplies?.length
+        ? [{ text: { content: formatStudentSupplies(input.studentSupplies) } }]
         : [],
     },
   }
@@ -214,6 +224,7 @@ export async function upsertNotionAssignment(input: NotionAssignmentInput): Prom
       classTitle: input.classTitle,
       date: input.date,
       coachName: input.coachName,
+      studentSupplies: input.studentSupplies,
     })
     return existingPageId
   }
@@ -231,6 +242,7 @@ export async function upsertNotionAssignment(input: NotionAssignmentInput): Prom
     classTitle: input.classTitle,
     date: input.date,
     coachName: input.coachName,
+    studentSupplies: input.studentSupplies,
   })
   return created.id
 }
@@ -268,11 +280,16 @@ export function mergeNotionAssignmentsIntoSchedules(
 
       if (!record) return item
 
+      const notionSupplies = record.studentSupplies
+      const mergedSupplies =
+        notionSupplies.length > 0 ? notionSupplies : item.studentSupplies ?? []
+
       return {
         ...item,
         coachName: record.coachName || item.coachName,
         isCoachChecked: record.isChecked,
         checkedAt: record.isChecked ? item.checkedAt ?? new Date().toISOString() : undefined,
+        studentSupplies: mergedSupplies,
         cancellationReason: record.cancelReason || undefined,
         cancelledAt: record.isCancelled ? item.cancelledAt ?? new Date().toISOString() : undefined,
       }

@@ -33,6 +33,12 @@ const NOTION_PROPS = {
   isChecked: "배정 완료 여부",
   isCancelled: "배정취소여부",
   cancelReason: "배정취소사유",
+  studentSupplies: "수강생준비물",
+}
+
+function formatStudentSupplies(supplies) {
+  if (!supplies?.length) return ""
+  return supplies.join(", ")
 }
 
 const VENUE_PLACES = {
@@ -92,6 +98,11 @@ function buildProperties(schedule, item) {
     [NOTION_PROPS.isCancelled]: { checkbox: Boolean(item.cancellation_reason) },
     [NOTION_PROPS.cancelReason]: {
       rich_text: item.cancellation_reason ? [{ text: { content: item.cancellation_reason } }] : [],
+    },
+    [NOTION_PROPS.studentSupplies]: {
+      rich_text: formatStudentSupplies(item.student_supplies)
+        ? [{ text: { content: formatStudentSupplies(item.student_supplies) } }]
+        : [],
     },
     classTitle,
   }

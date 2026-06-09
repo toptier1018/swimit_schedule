@@ -8,6 +8,7 @@ export const NOTION_PROPERTY_NAMES = {
   isChecked: "배정 완료 여부",
   isCancelled: "배정취소여부",
   cancelReason: "배정취소사유",
+  studentSupplies: "수강생준비물",
 } as const
 
 export function getNotionApiKey(): string | undefined {

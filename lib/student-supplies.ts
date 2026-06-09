@@ -6,3 +6,11 @@ export function formatStudentSupplies(supplies?: string[]): string {
   if (!supplies?.length) return ""
   return supplies.join(", ")
 }
+
+export function parseStudentSupplies(text: string): string[] {
+  if (!text.trim()) return []
+  return text
+    .split(/[,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
