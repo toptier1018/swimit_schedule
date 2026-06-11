@@ -20,6 +20,11 @@ const VENUE_PLACES: Record<string, VenuePlace> = {
     lon: 126.875,
     name: "서울 목동스포츠센터",
   },
+  "삼정스포츠 수영장": {
+    lat: 37.617,
+    lon: 126.918,
+    name: "삼정스포츠 수영장",
+  },
 }
 
 const DEFAULT_PLACE: VenuePlace = {

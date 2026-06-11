@@ -22,19 +22,31 @@ function createClass(
   name: string,
   time: string,
   seatStatus: string,
-  bookingStatus: string
+  bookingStatus: string,
+  coachName = ""
 ): ScheduleClass {
   return {
     id: `${prefix}-lane-${index}`,
     lane,
     name,
     time,
-    coachName: "",
+    coachName,
     seatStatus,
     bookingStatus,
     isOpen: bookingStatus !== "운영 없음",
     isCoachChecked: false,
   }
+}
+
+function createSamjeongLaneClasses(prefix: string, time: string): ScheduleClass[] {
+  return [
+    createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능", "송성준"),
+    createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능", "박준희"),
+    createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능", "황선웅"),
+    createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능", "김진훈"),
+    createClass(prefix, 5, "5레인", "자유형 A (초급)", time, "1자리 남음", "결제가능", "김형신"),
+    createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능", "이정민"),
+  ]
 }
 
 function createSwimitLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
@@ -149,6 +161,16 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     time: "14:00~16:00",
     coachName: "",
     classes: createSwimitLaneClasses("swimit-mokdong-20260628", "14:00~16:00", "목동"),
+  },
+  {
+    date: "2026-07-05",
+    region: "삼정",
+    venue: "삼정스포츠 수영장",
+    address: "서울 은평구 서오릉로 94 삼성타운아파트 지하2층",
+    className: "수영 특강 일정",
+    time: "09:00~11:00",
+    coachName: "",
+    classes: createSamjeongLaneClasses("swimit-samjeong-20260705", "09:00~11:00"),
   },
 ]
 
