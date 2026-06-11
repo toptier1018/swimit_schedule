@@ -164,7 +164,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   },
   {
     date: "2026-07-05",
-    region: "삼정",
+    region: "서울 은평구",
     venue: "삼정스포츠 수영장",
     address: "서울 은평구 서오릉로 94 삼성타운아파트 지하2층",
     className: "수영 특강 일정",
