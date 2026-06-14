@@ -257,11 +257,9 @@ function mergeClassesWithAssignments(existingClasses: ScheduleClass[], sourceCla
 }
 
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
-  return (
-    schedule.date === siteSchedule.date &&
-    schedule.region === siteSchedule.region &&
-    schedule.venue === siteSchedule.venue
-  )
+  // 같은 날짜 + 같은 장소면 동일 일정으로 봅니다.
+  // (지역명을 "은평" -> "서울 은평구"처럼 바꿔도 중복이 생기지 않도록 region은 비교하지 않습니다.)
+  return schedule.date === siteSchedule.date && schedule.venue === siteSchedule.venue
 }
 
 function getTodayKeyInKorea() {

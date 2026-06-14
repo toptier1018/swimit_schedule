@@ -217,14 +217,19 @@ function parseLaneClasses(block: string, prefix: string, time: string, region: s
   })
 }
 
+const REGION_ALIASES: Record<string, string> = {
+  은평: "서울 은평구",
+}
+
 function getRegion(locationCode: string) {
-  return locationCode || "기타"
+  return REGION_ALIASES[locationCode] || locationCode || "기타"
 }
 
 function getVenue(location: string, venue: string) {
   if (location.includes("화성")) return "수원 화성 와이풀앤와이에스씨"
   if (location.includes("목동")) return "서울 목동스포츠센터"
   if (location.includes("김포")) return "김포 아스타스포츠센터"
+  if (location.includes("삼정") || location.includes("은평")) return "삼정스포츠 수영장"
   return location || venue
 }
 
