@@ -277,6 +277,41 @@ function isUpcomingSchedule(date: string) {
   return date >= getTodayKeyInKorea()
 }
 
+function timeToMinutes(value: string): number | null {
+  const matched = value.trim().match(/(\d{1,2}):(\d{2})/)
+  if (!matched) return null
+  return Number(matched[1]) * 60 + Number(matched[2])
+}
+
+function getScheduleEndMinutes(time: string): number | null {
+  const parts = time.split("~")
+  const end = parts.length > 1 ? parts[1] : parts[0]
+  return end ? timeToMinutes(end) : null
+}
+
+function getKoreaNowMinutes(): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date())
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0")
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0")
+  return hour * 60 + minute
+}
+
+// 수업 종료 시각이 지나면 화면에서만 숨깁니다. (DB·노션 데이터는 그대로 보존)
+function isScheduleVisibleNow(date: string, time: string): boolean {
+  const todayKey = getTodayKeyInKorea()
+  if (date > todayKey) return true
+  if (date < todayKey) return false
+
+  const endMinutes = getScheduleEndMinutes(time)
+  if (endMinutes == null) return true
+  return getKoreaNowMinutes() <= endMinutes
+}
+
 async function mergeSchedulesWithNotion(schedules: Schedule[]): Promise<Schedule[]> {
   const records = await fetchNotionAssignmentsFromApi()
   if (records.length === 0) return schedules
@@ -300,7 +335,18 @@ async function mergeSchedulesWithNotion(schedules: Schedule[]): Promise<Schedule
 }
 
 async function finalizeSchedules(schedules: Schedule[]): Promise<Schedule[]> {
-  return mergeSchedulesWithNotion(schedules)
+  const merged = await mergeSchedulesWithNotion(schedules)
+  const visible = merged.filter((schedule) => isScheduleVisibleNow(schedule.date, schedule.time))
+
+  if (visible.length !== merged.length) {
+    console.info("[ScheduleSync] 종료된 일정을 화면에서 숨겼습니다. (데이터는 보존)", {
+      total: merged.length,
+      visible: visible.length,
+      hidden: merged.length - visible.length,
+    })
+  }
+
+  return visible
 }
 
 async function pushScheduleToNotion(schedule: Schedule | null | undefined): Promise<void> {
@@ -609,7 +655,8 @@ async function mergeSwimitSchedules(
   existingSchedules: Schedule[] = []
 ): Promise<Schedule[]> {
   const upcomingSiteSchedules = siteSchedules.filter((siteSchedule) => isUpcomingSchedule(siteSchedule.date))
-  const schedules = existingSchedules.filter((schedule) => isUpcomingSchedule(schedule.date))
+  // 지난 일정도 DB·노션에는 그대로 보존합니다. (화면 표시는 finalizeSchedules에서 숨김 처리)
+  const schedules = [...existingSchedules]
   const now = new Date().toISOString()
   let addedCount = 0
 
