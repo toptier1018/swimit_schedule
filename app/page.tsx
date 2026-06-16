@@ -88,23 +88,12 @@ export default function Home() {
     setSelectedSchedules(daySchedules)
   }
 
-  // Group schedules by region
-  const schedulesByRegion = schedules.reduce((acc, schedule) => {
-    const region = schedule.region || "기타"
-    if (!acc[region]) {
-      acc[region] = []
-    }
-    acc[region].push(schedule)
-    return acc
-  }, {} as Record<string, Schedule[]>)
-
-  // 지역 그룹을 "가장 빠른 일정 날짜" 기준으로 시간순 정렬합니다.
-  const earliestDateValue = (regionSchedules: Schedule[]) =>
-    Math.min(...regionSchedules.map((schedule) => new Date(schedule.date).getTime()))
-
-  const sortedRegionEntries = Object.entries(schedulesByRegion).sort(
-    ([, a], [, b]) => earliestDateValue(a) - earliestDateValue(b)
-  )
+  // 모든 일정을 날짜+시간 순으로 한 줄로 정렬합니다. (지역별로 묶지 않음)
+  const sortedSchedules = [...schedules].sort((a, b) => {
+    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime()
+    if (dateDiff !== 0) return dateDiff
+    return (a.time || "").localeCompare(b.time || "")
+  })
 
   const changedSchedule = pendingChange 
     ? schedules.find(s => s.id === pendingChange.scheduleId)
@@ -216,14 +205,14 @@ export default function Home() {
             </Card>
           </div>
 
-          {/* Schedule List by Region */}
+          {/* Schedule List (시간순) */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4 text-primary">
               <MapPin className="h-5 w-5" />
-              <h2 className="font-medium">지역을 선택 해주세요</h2>
+              <h2 className="font-medium">다가오는 일정 (시간순)</h2>
             </div>
 
-            {Object.keys(schedulesByRegion).length === 0 ? (
+            {sortedSchedules.length === 0 ? (
               <Card className="border-border bg-card">
                 <CardContent className="py-12 text-center text-muted-foreground">
                   <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -232,27 +221,15 @@ export default function Home() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
-                {sortedRegionEntries.map(([region, regionSchedules]) => (
-                  <div key={region}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <MapPin className="h-4 w-4 text-accent" />
-                      <h3 className="font-medium text-foreground">
-                        {regionSchedules[0]?.venue || region} ({region})
-                      </h3>
-                    </div>
-                    <ScheduleList
-                      schedules={regionSchedules}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onConfirm={handleConfirm}
-                      onClassCheck={handleClassCheck}
-                      onClassCancel={handleClassCancel}
-                      isDeveloperMode={isDeveloperMode}
-                    />
-                  </div>
-                ))}
-              </div>
+              <ScheduleList
+                schedules={sortedSchedules}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onConfirm={handleConfirm}
+                onClassCheck={handleClassCheck}
+                onClassCancel={handleClassCancel}
+                isDeveloperMode={isDeveloperMode}
+              />
             )}
           </div>
         </div>
