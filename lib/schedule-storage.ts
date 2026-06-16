@@ -72,6 +72,17 @@ function createSwimitLaneClasses(prefix: string, time: string, region: string): 
     ]
   }
 
+  if (region === "인천") {
+    return [
+      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+    ]
+  }
+
   return [
     {
       id: `${prefix}-lane-1`,
@@ -171,6 +182,26 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     time: "09:00~11:00",
     coachName: "",
     classes: createSamjeongLaneClasses("swimit-samjeong-20260705", "09:00~11:00"),
+  },
+  {
+    date: "2026-07-12",
+    region: "인천",
+    venue: "청라스카이스위밍",
+    address: "인천 서구 청라한내로 90 MK뷰 8층",
+    className: "수영 특강 일정",
+    time: "10:00~12:00",
+    coachName: "",
+    classes: createSwimitLaneClasses("swimit-cheongna-20260712", "10:00~12:00", "인천"),
+  },
+  {
+    date: "2026-07-26",
+    region: "목동",
+    venue: "서울 목동스포츠센터",
+    address: "서울 양천구 목동서로 130",
+    className: "수영 특강 일정",
+    time: "14:00~16:00",
+    coachName: "",
+    classes: createSwimitLaneClasses("swimit-mokdong-20260726", "14:00~16:00", "목동"),
   },
 ]
 

@@ -230,6 +230,7 @@ function getVenue(location: string, venue: string) {
   if (location.includes("목동")) return "서울 목동스포츠센터"
   if (location.includes("김포")) return "김포 아스타스포츠센터"
   if (location.includes("삼정") || location.includes("은평")) return "삼정스포츠 수영장"
+  if (location.includes("청라")) return "청라스카이스위밍"
   return location || venue
 }
 
