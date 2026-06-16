@@ -657,6 +657,8 @@ async function mergeSwimitSchedules(
   const schedules = [...existingSchedules]
   const now = new Date().toISOString()
   let addedCount = 0
+  // 실제로 새로 추가되거나 변경된 일정만 모읍니다. (불필요한 DB/노션 쓰기를 막아 로딩 속도 개선)
+  const changedSchedules: Schedule[] = []
 
   upcomingSiteSchedules.forEach((siteSchedule) => {
     const existingIndex = schedules.findIndex((schedule) => isSameSiteSchedule(schedule, siteSchedule))
@@ -664,8 +666,16 @@ async function mergeSwimitSchedules(
       const existingSchedule = schedules[existingIndex]
       const mergedClasses = mergeClassesWithAssignments(existingSchedule.classes, siteSchedule.classes)
       const classChanged = JSON.stringify(existingSchedule.classes) !== JSON.stringify(mergedClasses)
+      const metaChanged =
+        existingSchedule.className !== siteSchedule.className ||
+        existingSchedule.time !== siteSchedule.time ||
+        (Boolean(siteSchedule.address) && existingSchedule.address !== siteSchedule.address)
 
-      schedules[existingIndex] = normalizeSchedule({
+      if (!classChanged && !metaChanged) {
+        return
+      }
+
+      const updatedSchedule = normalizeSchedule({
         ...existingSchedule,
         className: siteSchedule.className,
         time: siteSchedule.time,
@@ -674,36 +684,43 @@ async function mergeSwimitSchedules(
         updatedAt: classChanged ? now : existingSchedule.updatedAt,
       })
 
+      schedules[existingIndex] = updatedSchedule
+      changedSchedules.push(updatedSchedule)
+
       if (classChanged) {
         addedCount += Math.max(0, siteSchedule.classes.length - existingSchedule.classes.length)
       }
       return
     }
 
-    schedules.push(
-      normalizeSchedule({
-        ...siteSchedule,
-        id: createId(),
-        isConfirmed: false,
-        createdAt: now,
-      })
-    )
+    const newSchedule = normalizeSchedule({
+      ...siteSchedule,
+      id: createId(),
+      isConfirmed: false,
+      createdAt: now,
+    })
+    schedules.push(newSchedule)
+    changedSchedules.push(newSchedule)
     addedCount += 1
   })
 
   console.info("[ScheduleSync] 스윔잇 사이트 일정 동기화가 완료되었습니다.", {
     addedCount,
+    changedCount: changedSchedules.length,
     sourceCount: siteSchedules.length,
     upcomingCount: upcomingSiteSchedules.length,
   })
 
-  if (isSupabaseConfigured()) {
-    await persistSchedulesInDb(schedules)
-  } else {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
-  }
+  // 변경된 일정이 있을 때만 저장/동기화합니다. (매 로딩마다 전체를 다시 쓰지 않음)
+  if (changedSchedules.length > 0) {
+    if (isSupabaseConfigured()) {
+      await persistSchedulesInDb(schedules)
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules))
+    }
 
-  await Promise.all(schedules.map((schedule) => pushScheduleToNotion(schedule)))
+    await Promise.all(changedSchedules.map((schedule) => pushScheduleToNotion(schedule)))
+  }
 
   return schedules
 }
