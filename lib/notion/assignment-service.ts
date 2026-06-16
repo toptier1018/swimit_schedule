@@ -261,38 +261,3 @@ export async function syncScheduleAssignmentsToNotion(schedule: Schedule): Promi
   })
 }
 
-export function mergeNotionAssignmentsIntoSchedules(
-  schedules: Schedule[],
-  records: NotionAssignmentRecord[]
-): Schedule[] {
-  if (records.length === 0) return schedules
-
-  return schedules.map((schedule) => ({
-    ...schedule,
-    classes: schedule.classes.map((item) => {
-      const classTitle = buildClassTitle(item)
-      const record = records.find(
-        (entry) =>
-          entry.date === schedule.date &&
-          entry.classTitle === classTitle &&
-          (entry.venue === schedule.venue || !entry.venue)
-      )
-
-      if (!record) return item
-
-      const notionSupplies = record.studentSupplies
-      const mergedSupplies =
-        notionSupplies.length > 0 ? notionSupplies : item.studentSupplies ?? []
-
-      return {
-        ...item,
-        coachName: record.coachName || item.coachName,
-        isCoachChecked: record.isChecked,
-        checkedAt: record.isChecked ? item.checkedAt ?? new Date().toISOString() : undefined,
-        studentSupplies: mergedSupplies,
-        cancellationReason: record.cancelReason || undefined,
-        cancelledAt: record.isCancelled ? item.cancelledAt ?? new Date().toISOString() : undefined,
-      }
-    }),
-  }))
-}

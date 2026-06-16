@@ -9,8 +9,7 @@ import {
   upsertChangeInDb,
   upsertScheduleInDb,
 } from "@/lib/supabase/schedule-repository"
-import { mergeNotionAssignmentsIntoSchedules } from "@/lib/notion/assignment-service"
-import { fetchNotionAssignmentsFromApi, syncScheduleToNotionApi } from "@/lib/notion/sync-client"
+import { syncScheduleToNotionApi } from "@/lib/notion/sync-client"
 
 const STORAGE_KEY = "schedules"
 const CHANGES_KEY = "schedule_changes"
@@ -263,30 +262,6 @@ function shouldReplaceSiteClasses(schedule: Schedule) {
   return schedule.classes.length === 1 && schedule.classes[0]?.name === "1부"
 }
 
-function mergeClassesWithAssignments(existingClasses: ScheduleClass[], sourceClasses: ScheduleClass[]) {
-  return sourceClasses.map((sourceClass) => {
-    const existingClass = existingClasses.find((item) => item.lane === sourceClass.lane)
-    const isSameClass =
-      existingClass?.name === sourceClass.name &&
-      existingClass?.time === sourceClass.time &&
-      existingClass?.isOpen === sourceClass.isOpen
-
-    if (!existingClass || !isSameClass) {
-      return sourceClass
-    }
-
-    return {
-      ...sourceClass,
-      coachName: existingClass.coachName,
-      isCoachChecked: existingClass.isCoachChecked,
-      checkedAt: existingClass.checkedAt,
-      studentSupplies: existingClass.studentSupplies,
-      cancellationReason: existingClass.cancellationReason,
-      cancelledAt: existingClass.cancelledAt,
-    }
-  })
-}
-
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
   // 같은 날짜 + 같은 장소면 동일 일정으로 봅니다.
   // (지역명을 "은평" -> "서울 은평구"처럼 바꿔도 중복이 생기지 않도록 region은 비교하지 않습니다.)
@@ -341,37 +316,14 @@ function isScheduleVisibleNow(date: string, time: string): boolean {
   return getKoreaNowMinutes() <= endMinutes
 }
 
-async function mergeSchedulesWithNotion(schedules: Schedule[]): Promise<Schedule[]> {
-  const records = await fetchNotionAssignmentsFromApi()
-  if (records.length === 0) return schedules
-
-  const merged = mergeNotionAssignmentsIntoSchedules(schedules, records)
-  const changed = JSON.stringify(merged) !== JSON.stringify(schedules)
-
-  if (!changed) return merged
-
-  console.info("[Notion] 노션에 저장된 배정 정보를 일정에 반영했습니다.", {
-    recordCount: records.length,
-  })
-
-  if (isSupabaseConfigured()) {
-    await persistSchedulesInDb(merged)
-  } else if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-  }
-
-  return merged
-}
-
 async function finalizeSchedules(schedules: Schedule[]): Promise<Schedule[]> {
-  const merged = await mergeSchedulesWithNotion(schedules)
-  const visible = merged.filter((schedule) => isScheduleVisibleNow(schedule.date, schedule.time))
+  const visible = schedules.filter((schedule) => isScheduleVisibleNow(schedule.date, schedule.time))
 
-  if (visible.length !== merged.length) {
+  if (visible.length !== schedules.length) {
     console.info("[ScheduleSync] 종료된 일정을 화면에서 숨겼습니다. (데이터는 보존)", {
-      total: merged.length,
+      total: schedules.length,
       visible: visible.length,
-      hidden: merged.length - visible.length,
+      hidden: schedules.length - visible.length,
     })
   }
 
@@ -695,9 +647,11 @@ async function mergeSwimitSchedules(
     const existingIndex = schedules.findIndex((schedule) => isSameSiteSchedule(schedule, siteSchedule))
     if (existingIndex !== -1) {
       const existingSchedule = schedules[existingIndex]
-      const mergedClasses = mergeClassesWithAssignments(existingSchedule.classes, siteSchedule.classes)
-      const classChanged = JSON.stringify(existingSchedule.classes) !== JSON.stringify(mergedClasses)
+      const shouldReplaceClasses = shouldReplaceSiteClasses(existingSchedule)
+      const nextClasses = shouldReplaceClasses ? siteSchedule.classes : existingSchedule.classes
+      const classChanged = JSON.stringify(existingSchedule.classes) !== JSON.stringify(nextClasses)
       const metaChanged =
+        existingSchedule.region !== siteSchedule.region ||
         existingSchedule.className !== siteSchedule.className ||
         existingSchedule.time !== siteSchedule.time ||
         (Boolean(siteSchedule.address) && existingSchedule.address !== siteSchedule.address)
@@ -708,11 +662,13 @@ async function mergeSwimitSchedules(
 
       const updatedSchedule = normalizeSchedule({
         ...existingSchedule,
+        region: siteSchedule.region || existingSchedule.region,
         className: siteSchedule.className,
         time: siteSchedule.time,
         address: siteSchedule.address || existingSchedule.address,
-        classes: shouldReplaceSiteClasses(existingSchedule) ? siteSchedule.classes : mergedClasses,
-        updatedAt: classChanged ? now : existingSchedule.updatedAt,
+        // Supabase에 저장된 기존 배정(코치명, 확인 상태, 준비물)은 원본 사이트가 덮어쓰지 않습니다.
+        classes: nextClasses,
+        updatedAt: classChanged || metaChanged ? now : existingSchedule.updatedAt,
       })
 
       schedules[existingIndex] = updatedSchedule
