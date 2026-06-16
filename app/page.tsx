@@ -98,6 +98,14 @@ export default function Home() {
     return acc
   }, {} as Record<string, Schedule[]>)
 
+  // 지역 그룹을 "가장 빠른 일정 날짜" 기준으로 시간순 정렬합니다.
+  const earliestDateValue = (regionSchedules: Schedule[]) =>
+    Math.min(...regionSchedules.map((schedule) => new Date(schedule.date).getTime()))
+
+  const sortedRegionEntries = Object.entries(schedulesByRegion).sort(
+    ([, a], [, b]) => earliestDateValue(a) - earliestDateValue(b)
+  )
+
   const changedSchedule = pendingChange 
     ? schedules.find(s => s.id === pendingChange.scheduleId)
     : undefined
@@ -225,7 +233,7 @@ export default function Home() {
               </Card>
             ) : (
               <div className="space-y-6">
-                {Object.entries(schedulesByRegion).map(([region, regionSchedules]) => (
+                {sortedRegionEntries.map(([region, regionSchedules]) => (
                   <div key={region}>
                     <div className="flex items-center gap-2 mb-3">
                       <MapPin className="h-4 w-4 text-accent" />

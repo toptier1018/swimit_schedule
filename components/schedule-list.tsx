@@ -35,9 +35,11 @@ export function ScheduleList({
     )
   }
 
-  const sortedSchedules = [...schedules].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  )
+  const sortedSchedules = [...schedules].sort((a, b) => {
+    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime()
+    if (dateDiff !== 0) return dateDiff
+    return (a.time || "").localeCompare(b.time || "")
+  })
 
   return (
     <div className="space-y-4">
