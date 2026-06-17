@@ -57,6 +57,13 @@ const CENTER_MARKERS = [
     addressFallback: "서울 양천구 목동서로 130",
     classPrefix: "swimit-mokdong",
   },
+  {
+    region: "동탄",
+    venue: "스윔스튜디오제이",
+    marker: "스윔스튜디오제이 (동탄) (동탄)",
+    addressFallback: "경기도 화성시 동탄구 동탄신리천로 414 경서타워 4층 스윔스튜디오제이",
+    classPrefix: "swimit-dongtan",
+  },
 ]
 
 function normalizeText(html: string) {
@@ -122,6 +129,17 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
   }
 
   if (region === "목동") {
+    return [
+      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+    ]
+  }
+
+  if (region === "동탄") {
     return [
       createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
@@ -231,6 +249,7 @@ function getVenue(location: string, venue: string) {
   if (location.includes("김포")) return "김포 아스타스포츠센터"
   if (location.includes("삼정") || location.includes("은평")) return "삼정스포츠 수영장"
   if (location.includes("청라")) return "청라스카이스위밍"
+  if (location.includes("스윔스튜디오제이") || location.includes("동탄")) return "스윔스튜디오제이"
   return location || venue
 }
 
@@ -238,6 +257,7 @@ function getClassPrefix(source: SourceSchedule, date: string) {
   if (source.locationCode === "김포") return `swimit-gimpo-${date.replaceAll("-", "")}`
   if (source.locationCode === "화성") return `swimit-hwaseong-${date.replaceAll("-", "")}`
   if (source.locationCode === "목동") return `swimit-mokdong-${date.replaceAll("-", "")}`
+  if (source.locationCode === "동탄") return `swimit-dongtan-${date.replaceAll("-", "")}`
   return `swimit-${source.id}-${date.replaceAll("-", "")}`
 }
 

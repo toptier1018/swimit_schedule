@@ -82,6 +82,17 @@ function createSwimitLaneClasses(prefix: string, time: string, region: string): 
     ]
   }
 
+  if (region === "동탄") {
+    return [
+      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+    ]
+  }
+
   return [
     {
       id: `${prefix}-lane-1`,
@@ -191,6 +202,16 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     time: "10:00~12:00",
     coachName: "",
     classes: createSwimitLaneClasses("swimit-cheongna-20260712", "10:00~12:00", "인천"),
+  },
+  {
+    date: "2026-07-19",
+    region: "동탄",
+    venue: "스윔스튜디오제이",
+    address: "경기도 화성시 동탄구 동탄신리천로 414 경서타워 4층 스윔스튜디오제이",
+    className: "수영 특강 일정",
+    time: "10:00~12:00",
+    coachName: "",
+    classes: createSwimitLaneClasses("swimit-dongtan-20260719", "10:00~12:00", "동탄"),
   },
   {
     date: "2026-07-26",
