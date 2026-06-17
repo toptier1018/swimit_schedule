@@ -58,6 +58,13 @@ const CENTER_MARKERS = [
     classPrefix: "swimit-mokdong",
   },
   {
+    region: "인천",
+    venue: "청라스카이스위밍",
+    marker: "청라스카이스위밍 (인천)",
+    addressFallback: "인천 서구 청라한내로 90 MK뷰 8층",
+    classPrefix: "swimit-cheongna",
+  },
+  {
     region: "동탄",
     venue: "스윔스튜디오제이",
     marker: "스윔스튜디오제이 (동탄) (동탄)",
@@ -139,14 +146,22 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
     ]
   }
 
+  if (region === "인천") {
+    return [
+      createClass(prefix, 1, "1레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "평영 A (초급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "접영 B (중급)", time, "1자리 남음", "결제가능"),
+    ]
+  }
+
   if (region === "동탄") {
     return [
       createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
-      createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
-      createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "접영 A (초급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "자유형 A (초급)", time, "2자리 남음", "결제가능"),
       createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능"),
-      createClass(prefix, 5, "5레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
-      createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
     ]
   }
 
@@ -257,6 +272,7 @@ function getClassPrefix(source: SourceSchedule, date: string) {
   if (source.locationCode === "김포") return `swimit-gimpo-${date.replaceAll("-", "")}`
   if (source.locationCode === "화성") return `swimit-hwaseong-${date.replaceAll("-", "")}`
   if (source.locationCode === "목동") return `swimit-mokdong-${date.replaceAll("-", "")}`
+  if (source.locationCode === "인천") return `swimit-cheongna-${date.replaceAll("-", "")}`
   if (source.locationCode === "동탄") return `swimit-dongtan-${date.replaceAll("-", "")}`
   return `swimit-${source.id}-${date.replaceAll("-", "")}`
 }
