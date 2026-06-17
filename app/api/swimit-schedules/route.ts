@@ -363,14 +363,20 @@ async function parseEmbeddedSchedules(html: string) {
 function parseSchedules(pageText: string): Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">> {
   const pageYear = Number(pageText.match(/(\d{4})년\s*\d{1,2}월/)?.[1]) || new Date().getFullYear()
 
-  return CENTER_MARKERS.flatMap((center, index) => {
-    const start = pageText.indexOf(center.marker)
-    if (start === -1) return []
+  const occurrences = CENTER_MARKERS.flatMap((center) => {
+    const matches: Array<{ center: typeof center; start: number }> = []
+    let start = pageText.indexOf(center.marker)
 
-    const nextStart = CENTER_MARKERS.slice(index + 1)
-      .map((nextCenter) => pageText.indexOf(nextCenter.marker))
-      .filter((nextIndex) => nextIndex > start)
-      .sort((a, b) => a - b)[0]
+    while (start !== -1) {
+      matches.push({ center, start })
+      start = pageText.indexOf(center.marker, start + center.marker.length)
+    }
+
+    return matches
+  }).sort((a, b) => a.start - b.start)
+
+  return occurrences.flatMap(({ center, start }, index) => {
+    const nextStart = occurrences[index + 1]?.start
 
     const block = pageText.slice(start, nextStart || undefined)
     const dateMatch = block.match(/(\d{1,2})월\s*(\d{1,2})일/)
@@ -400,6 +406,26 @@ function parseSchedules(pageText: string): Array<Omit<Schedule, "id" | "createdA
   })
 }
 
+function mergeParsedSchedules(
+  primary: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>,
+  fallback: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>
+) {
+  const merged = [...primary]
+
+  fallback.forEach((schedule) => {
+    const exists = merged.some((item) => item.date === schedule.date && item.venue === schedule.venue)
+    if (!exists) {
+      merged.push(schedule)
+    }
+  })
+
+  return merged.sort((a, b) => {
+    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime()
+    if (dateDiff !== 0) return dateDiff
+    return (a.time || "").localeCompare(b.time || "")
+  })
+}
+
 export async function GET() {
   try {
     console.info("[SwimitSource] 스윔잇 공개 페이지에서 일정표를 가져옵니다.", {
@@ -418,10 +444,13 @@ export async function GET() {
     }
 
     const html = await response.text()
+    const pageSchedules = parseSchedules(normalizeText(html))
     const embeddedSchedules = await parseEmbeddedSchedules(html)
-    const schedules = embeddedSchedules.length > 0 ? embeddedSchedules : parseSchedules(normalizeText(html))
+    const schedules = mergeParsedSchedules(embeddedSchedules, pageSchedules)
 
     console.info("[SwimitSource] 스윔잇 일정표 파싱이 완료되었습니다.", {
+      embeddedCount: embeddedSchedules.length,
+      pageCount: pageSchedules.length,
       scheduleCount: schedules.length,
     })
 

@@ -95,6 +95,28 @@ export default function Home() {
     return (a.time || "").localeCompare(b.time || "")
   })
 
+  const formatKoreanDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const weekdays = ["일", "월", "화", "수", "목", "금", "토"]
+    return `${date.getMonth() + 1}월 ${date.getDate()}일 (${weekdays[date.getDay()]})`
+  }
+
+  const developerClassRows = sortedSchedules.flatMap((schedule) =>
+    schedule.classes
+      .filter((item) => item.isOpen)
+      .map((item) => ({
+        id: `${schedule.id}-${item.id}`,
+        date: schedule.date,
+        dateLabel: formatKoreanDate(schedule.date),
+        time: item.time || schedule.time,
+        region: schedule.region,
+        venue: schedule.venue,
+        lane: item.lane,
+        name: item.name,
+        coachName: item.coachName,
+      }))
+  )
+
   const changedSchedule = pendingChange 
     ? schedules.find(s => s.id === pendingChange.scheduleId)
     : undefined
@@ -185,6 +207,37 @@ export default function Home() {
             </CardContent>
           </Card>
         </div>
+
+        {isDeveloperMode && (
+          <Card className="mb-5 border-border bg-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-primary">
+                <Calendar className="h-4 w-4" />
+                개발자 클래스 목록 (날짜순)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 p-3 pt-0 sm:p-4 sm:pt-0">
+              <p className="text-xs text-muted-foreground">
+                운영 클래스 {developerClassRows.length}개 · 스윔잇 일정 순서와 동일하게 표시됩니다.
+              </p>
+              <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                {developerClassRows.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                    <p className="font-medium text-foreground">
+                      {item.dateLabel} · {item.time}
+                    </p>
+                    <p className="mt-1 text-muted-foreground">
+                      [{item.region}] {item.venue} · {item.lane} {item.name}
+                    </p>
+                    <p className="mt-1 text-xs text-primary">
+                      담당: {item.coachName ? `${item.coachName} 코치님` : "미배정"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Section */}
