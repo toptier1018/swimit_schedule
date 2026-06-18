@@ -194,12 +194,11 @@ export default function Home() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 p-3 pt-0 text-sm sm:p-4 sm:pt-0">
-            <p className="font-medium text-foreground">[클래스 운영 안내]</p>
             <p className="text-muted-foreground">
               기준 운영 인원에 미치지 못한 클래스는 통합 운영될 수 있습니다.
             </p>
             <p className="text-muted-foreground">
-              특강 1주일 전 배정 조정이 필요한 코치님께는 개별 안내드리겠습니다.
+              특강 4일전까지 배정 조정이 필요한 코치님께는 개별 안내드리겠습니다.
             </p>
           </CardContent>
         </Card>
