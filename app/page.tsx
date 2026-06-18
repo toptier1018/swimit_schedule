@@ -186,25 +186,23 @@ export default function Home() {
           </Card>
         </div>
 
-        {isDeveloperMode && (
-          <Card className="mb-5 border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-primary">
-                <Calendar className="h-4 w-4" />
-                클래스 운영 안내
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 p-3 pt-0 text-sm sm:p-4 sm:pt-0">
-              <p className="font-medium text-foreground">[클래스 운영 안내]</p>
-              <p className="text-muted-foreground">
-                기준 운영 인원에 미치지 못한 클래스는 통합 운영될 수 있습니다.
-              </p>
-              <p className="text-muted-foreground">
-                특강 1주일 전 배정 조정이 필요한 코치님께는 개별 안내드리겠습니다.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="mb-5 border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Calendar className="h-4 w-4" />
+              클래스 운영 안내
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-3 pt-0 text-sm sm:p-4 sm:pt-0">
+            <p className="font-medium text-foreground">[클래스 운영 안내]</p>
+            <p className="text-muted-foreground">
+              기준 운영 인원에 미치지 못한 클래스는 통합 운영될 수 있습니다.
+            </p>
+            <p className="text-muted-foreground">
+              특강 1주일 전 배정 조정이 필요한 코치님께는 개별 안내드리겠습니다.
+            </p>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Section */}
