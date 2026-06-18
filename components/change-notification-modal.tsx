@@ -58,7 +58,7 @@ export function ChangeNotificationModal({
             </div>
             <div className="text-sm">
               <span className="text-muted-foreground">장소: </span>
-              <span className="font-medium text-foreground">{schedule.venue} ({schedule.region})</span>
+              <span className="font-medium text-foreground">{schedule.venue}</span>
             </div>
           </div>
 

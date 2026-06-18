@@ -10,6 +10,7 @@ import {
   upsertScheduleInDb,
 } from "@/lib/supabase/schedule-repository"
 import { syncScheduleToNotionApi } from "@/lib/notion/sync-client"
+import { normalizeRegionName, normalizeVenueName } from "@/lib/venue-display"
 
 const STORAGE_KEY = "schedules"
 const CHANGES_KEY = "schedule_changes"
@@ -49,7 +50,7 @@ function createSamjeongLaneClasses(prefix: string, time: string): ScheduleClass[
 }
 
 function createSwimitLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
-  if (region === "화성") {
+  if (region.includes("화성")) {
     return [
       createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
       createClass(prefix, 2, "2레인", "자유형 A (초급)", time, "마감임박", "결제가능"),
@@ -60,7 +61,7 @@ function createSwimitLaneClasses(prefix: string, time: string, region: string): 
     ]
   }
 
-  if (region === "목동") {
+  if (region.includes("목동")) {
     return [
       createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
@@ -71,7 +72,7 @@ function createSwimitLaneClasses(prefix: string, time: string, region: string): 
     ]
   }
 
-  if (region === "인천") {
+  if (region.includes("인천")) {
     return [
       createClass(prefix, 1, "1레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "평영 A (초급)", time, "마감임박", "결제가능"),
@@ -81,7 +82,7 @@ function createSwimitLaneClasses(prefix: string, time: string, region: string): 
     ]
   }
 
-  if (region === "동탄") {
+  if (region.includes("동탄")) {
     return [
       createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "접영 A (초급)", time, "마감임박", "결제가능"),
@@ -152,8 +153,8 @@ function createSwimitLaneClasses(prefix: string, time: string, region: string): 
 const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">> = [
   {
     date: "2026-06-14",
-    region: "김포",
-    venue: "김포 아스타스포츠센터",
+    region: "경기 김포",
+    venue: "경기 김포 · 아스타스포츠센터",
     address: "김포한강9로76번길 63 4층 407호, 408호, 409호",
     className: "수영 특강 일정",
     time: "15:00~17:00",
@@ -162,8 +163,8 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   },
   {
     date: "2026-06-21",
-    region: "화성",
-    venue: "수원 화성 와이풀앤와이에스씨",
+    region: "경기 화성",
+    venue: "경기 화성 · 와이풀앤와이에스씨",
     address: "경기도 화성시 반정동 153번길 9-10",
     className: "수영 특강 일정",
     time: "14:00~16:00",
@@ -172,8 +173,8 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   },
   {
     date: "2026-06-28",
-    region: "목동",
-    venue: "서울 목동스포츠센터",
+    region: "서울 목동",
+    venue: "서울 목동 · 목동스포츠센터",
     address: "서울 양천구 목동서로 130",
     className: "수영 특강 일정",
     time: "14:00~16:00",
@@ -183,7 +184,7 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   {
     date: "2026-07-05",
     region: "서울 은평구",
-    venue: "삼정스포츠 수영장",
+    venue: "서울 은평구 · 삼정스포츠 수영장",
     address: "서울 은평구 서오릉로 94 삼성타운아파트 지하2층",
     className: "수영 특강 일정",
     time: "09:00~11:00",
@@ -192,8 +193,8 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   },
   {
     date: "2026-07-12",
-    region: "인천",
-    venue: "청라스카이스위밍",
+    region: "인천 청라",
+    venue: "인천 청라 · 청라스카이스위밍",
     address: "인천 서구 청라한내로 90 MK뷰 8층",
     className: "수영 특강 일정",
     time: "10:00~12:00",
@@ -202,8 +203,8 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   },
   {
     date: "2026-07-19",
-    region: "동탄",
-    venue: "스윔스튜디오제이",
+    region: "경기 동탄",
+    venue: "경기 동탄 · 스윔스튜디오제이",
     address: "경기도 화성시 동탄구 동탄신리천로 414 경서타워 4층 스윔스튜디오제이",
     className: "수영 특강 일정",
     time: "10:00~12:00",
@@ -212,8 +213,8 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
   },
   {
     date: "2026-07-26",
-    region: "목동",
-    venue: "서울 목동스포츠센터",
+    region: "서울 목동",
+    venue: "서울 목동 · 목동스포츠센터",
     address: "서울 양천구 목동서로 130",
     className: "수영 특강 일정",
     time: "14:00~16:00",
@@ -269,6 +270,8 @@ function normalizeSchedule(schedule: Schedule): Schedule {
 
   return {
     ...schedule,
+    region: normalizeRegionName(schedule.region || ""),
+    venue: normalizeVenueName(schedule.venue || ""),
     className: schedule.className || primaryClass.name,
     time: schedule.time || primaryClass.time,
     coachName: schedule.coachName || primaryClass.coachName,
@@ -283,7 +286,10 @@ function shouldReplaceSiteClasses(schedule: Schedule) {
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
   // 같은 날짜 + 같은 장소면 동일 일정으로 봅니다.
   // (지역명을 "은평" -> "서울 은평구"처럼 바꿔도 중복이 생기지 않도록 region은 비교하지 않습니다.)
-  return schedule.date === siteSchedule.date && schedule.venue === siteSchedule.venue
+  return (
+    schedule.date === siteSchedule.date &&
+    normalizeVenueName(schedule.venue) === normalizeVenueName(siteSchedule.venue)
+  )
 }
 
 function getTodayKeyInKorea() {

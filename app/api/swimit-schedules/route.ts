@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { Schedule, ScheduleClass } from "@/types/schedule"
+import { normalizeRegionName, normalizeVenueName } from "@/lib/venue-display"
 
 const SWIMIT_SOURCE_URL = "https://swimit.vercel.app/"
 
@@ -37,36 +38,36 @@ const SEAT_STATUS_BY_LANE: Record<string, string> = {
 
 const CENTER_MARKERS = [
   {
-    region: "김포",
-    venue: "김포 아스타스포츠센터",
+    region: "경기 김포",
+    venue: "경기 김포 · 아스타스포츠센터",
     marker: "김포 아스타스포츠센터 (김포)",
     addressFallback: "김포한강9로76번길 63 4층 407호, 408호, 409호",
     classPrefix: "swimit-gimpo",
   },
   {
-    region: "화성",
-    venue: "수원 화성 와이풀앤와이에스씨",
+    region: "경기 화성",
+    venue: "경기 화성 · 와이풀앤와이에스씨",
     marker: "수원 화성 와이풀앤와이에스씨 (화성)",
     addressFallback: "경기도 화성시 반정동 153번길 9-10",
     classPrefix: "swimit-hwaseong",
   },
   {
-    region: "목동",
-    venue: "서울 목동스포츠센터",
+    region: "서울 목동",
+    venue: "서울 목동 · 목동스포츠센터",
     marker: "서울 목동스포츠센터 (목동)",
     addressFallback: "서울 양천구 목동서로 130",
     classPrefix: "swimit-mokdong",
   },
   {
-    region: "인천",
-    venue: "청라스카이스위밍",
+    region: "인천 청라",
+    venue: "인천 청라 · 청라스카이스위밍",
     marker: "청라스카이스위밍 (인천)",
     addressFallback: "인천 서구 청라한내로 90 MK뷰 8층",
     classPrefix: "swimit-cheongna",
   },
   {
-    region: "동탄",
-    venue: "스윔스튜디오제이",
+    region: "경기 동탄",
+    venue: "경기 동탄 · 스윔스튜디오제이",
     marker: "스윔스튜디오제이 (동탄) (동탄)",
     addressFallback: "경기도 화성시 동탄구 동탄신리천로 414 경서타워 4층 스윔스튜디오제이",
     classPrefix: "swimit-dongtan",
@@ -124,7 +125,7 @@ function createClass(
 }
 
 function createLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
-  if (region === "화성") {
+  if (region.includes("화성")) {
     return [
       createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
       createClass(prefix, 2, "2레인", "자유형 A (초급)", time, "마감임박", "결제가능"),
@@ -135,7 +136,7 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
     ]
   }
 
-  if (region === "목동") {
+  if (region.includes("목동")) {
     return [
       createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "평영 B (중급)", time, "마감임박", "결제가능"),
@@ -146,7 +147,7 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
     ]
   }
 
-  if (region === "인천") {
+  if (region.includes("인천")) {
     return [
       createClass(prefix, 1, "1레인", "자유형 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "평영 A (초급)", time, "마감임박", "결제가능"),
@@ -156,7 +157,7 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
     ]
   }
 
-  if (region === "동탄") {
+  if (region.includes("동탄")) {
     return [
       createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "접영 A (초급)", time, "마감임박", "결제가능"),
@@ -255,17 +256,17 @@ const REGION_ALIASES: Record<string, string> = {
 }
 
 function getRegion(locationCode: string) {
-  return REGION_ALIASES[locationCode] || locationCode || "기타"
+  return normalizeRegionName(REGION_ALIASES[locationCode] || locationCode || "기타")
 }
 
 function getVenue(location: string, venue: string) {
-  if (location.includes("화성")) return "수원 화성 와이풀앤와이에스씨"
-  if (location.includes("목동")) return "서울 목동스포츠센터"
-  if (location.includes("김포")) return "김포 아스타스포츠센터"
-  if (location.includes("삼정") || location.includes("은평")) return "삼정스포츠 수영장"
-  if (location.includes("청라")) return "청라스카이스위밍"
-  if (location.includes("스윔스튜디오제이") || location.includes("동탄")) return "스윔스튜디오제이"
-  return location || venue
+  if (location.includes("화성")) return normalizeVenueName("수원 화성 와이풀앤와이에스씨")
+  if (location.includes("목동")) return normalizeVenueName("서울 목동스포츠센터")
+  if (location.includes("김포")) return normalizeVenueName("김포 아스타스포츠센터")
+  if (location.includes("삼정") || location.includes("은평")) return normalizeVenueName("삼정스포츠 수영장")
+  if (location.includes("청라")) return normalizeVenueName("청라스카이스위밍")
+  if (location.includes("스윔스튜디오제이") || location.includes("동탄")) return normalizeVenueName("스윔스튜디오제이")
+  return normalizeVenueName(location || venue)
 }
 
 function getClassPrefix(source: SourceSchedule, date: string) {
