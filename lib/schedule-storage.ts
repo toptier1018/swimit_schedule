@@ -40,7 +40,7 @@ function createClass(
 
 function createSamjeongLaneClasses(prefix: string, time: string): ScheduleClass[] {
   return [
-    createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능", "송성준"),
+    createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
     createClass(prefix, 2, "2레인", "운영 없음", time, "", "운영 없음"),
     createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능", "황선웅"),
     createClass(prefix, 4, "4레인", "운영 없음", time, "", "운영 없음"),
