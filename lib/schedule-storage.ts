@@ -217,9 +217,9 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     venue: "서울 목동 · 목동스포츠센터",
     address: "서울 양천구 목동서로 130",
     className: "수영 특강 일정",
-    time: "14:00~16:00",
+    time: "10:00~12:00",
     coachName: "",
-    classes: createSwimitLaneClasses("swimit-mokdong-20260726", "14:00~16:00", "목동"),
+    classes: createSwimitLaneClasses("swimit-mokdong-20260726", "10:00~12:00", "목동"),
   },
 ]
 
