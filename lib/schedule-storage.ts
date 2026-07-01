@@ -44,7 +44,7 @@ function createSamjeongLaneClasses(prefix: string, time: string): ScheduleClass[
     createClass(prefix, 2, "2레인", "운영 없음", time, "", "운영 없음"),
     createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능", "황선웅"),
     createClass(prefix, 4, "4레인", "운영 없음", time, "", "운영 없음"),
-    createClass(prefix, 5, "5레인", "자유형 A (초급)", time, "1자리 남음", "결제가능", "김형신"),
+    createClass(prefix, 5, "5레인", "운영 없음", time, "", "운영 없음"),
     createClass(prefix, 6, "6레인", "자유형 B (중급)", time, "마감임박", "결제가능", "이정민"),
   ]
 }
