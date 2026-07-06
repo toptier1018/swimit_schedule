@@ -158,9 +158,9 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
 
   if (region.includes("동탄")) {
     return [
-      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
-      createClass(prefix, 2, "2레인", "접영 A (초급)", time, "마감임박", "결제가능"),
-      createClass(prefix, 3, "3레인", "자유형 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
+      createClass(prefix, 2, "2레인", "접영", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "자유형", time, "2자리 남음", "결제가능"),
       createClass(prefix, 4, "4레인", "운영 없음", time, "", "운영 없음"),
     ]
   }
