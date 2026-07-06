@@ -149,8 +149,8 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
 
   if (region.includes("인천")) {
     return [
-      createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
-      createClass(prefix, 2, "2레인", "운영 없음", time, "", "운영 없음"),
+      createClass(prefix, 1, "1레인", "콘텐츠 촬영", time, "", "촬영", "박준희"),
+      createClass(prefix, 2, "2레인", "콘텐츠 촬영", time, "", "촬영", "박준희"),
       createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
       createClass(prefix, 4, "4레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
     ]
@@ -161,7 +161,7 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
       createClass(prefix, 1, "1레인", "접영", time, "1자리 남음", "결제가능", "신준혁"),
       createClass(prefix, 2, "2레인", "접영", time, "마감임박", "결제가능"),
       createClass(prefix, 3, "3레인", "자유형", time, "2자리 남음", "결제가능"),
-      createClass(prefix, 4, "4레인", "운영 없음", time, "", "운영 없음"),
+      createClass(prefix, 4, "4레인", "촬영", time, "", "촬영", "김진훈"),
     ]
   }
 
