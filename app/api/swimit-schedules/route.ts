@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { Schedule, ScheduleClass } from "@/types/schedule"
+import { filterCancelledSiteSchedules } from "@/lib/cancelled-schedules"
 import { normalizeRegionName, normalizeVenueName } from "@/lib/venue-display"
 
 const SWIMIT_SOURCE_URL = "https://swimit.vercel.app/"
@@ -446,7 +447,9 @@ export async function GET() {
     const html = await response.text()
     const pageSchedules = parseSchedules(normalizeText(html))
     const embeddedSchedules = await parseEmbeddedSchedules(html)
-    const schedules = mergeParsedSchedules(embeddedSchedules, pageSchedules)
+    const schedules = filterCancelledSiteSchedules(
+      mergeParsedSchedules(embeddedSchedules, pageSchedules)
+    )
 
     console.info("[SwimitSource] 스윔잇 일정표 파싱이 완료되었습니다.", {
       embeddedCount: embeddedSchedules.length,

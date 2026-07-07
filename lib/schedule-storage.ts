@@ -10,6 +10,10 @@ import {
   upsertScheduleInDb,
 } from "@/lib/supabase/schedule-repository"
 import { syncScheduleToNotionApi } from "@/lib/notion/sync-client"
+import {
+  filterCancelledSiteSchedules,
+  isCancelledSiteSchedule,
+} from "@/lib/cancelled-schedules"
 import { normalizeRegionName, normalizeVenueName } from "@/lib/venue-display"
 
 const STORAGE_KEY = "schedules"
@@ -340,10 +344,11 @@ function isScheduleVisibleNow(date: string, time: string): boolean {
 }
 
 async function finalizeSchedules(schedules: Schedule[]): Promise<Schedule[]> {
-  const visible = schedules.filter((schedule) => isScheduleVisibleNow(schedule.date, schedule.time))
+  const active = schedules.filter((schedule) => !isCancelledSiteSchedule(schedule.date, schedule.venue))
+  const visible = active.filter((schedule) => isScheduleVisibleNow(schedule.date, schedule.time))
 
   if (visible.length !== schedules.length) {
-    console.info("[ScheduleSync] 종료된 일정을 화면에서 숨겼습니다. (데이터는 보존)", {
+    console.info("[ScheduleSync] 종료·취소된 일정을 화면에서 숨겼습니다. (데이터는 보존)", {
       total: schedules.length,
       visible: visible.length,
       hidden: schedules.length - visible.length,
@@ -658,9 +663,28 @@ async function mergeSwimitSchedules(
   siteSchedules: Array<Omit<Schedule, "id" | "createdAt" | "isConfirmed">>,
   existingSchedules: Schedule[] = []
 ): Promise<Schedule[]> {
-  const upcomingSiteSchedules = siteSchedules.filter((siteSchedule) => isUpcomingSchedule(siteSchedule.date))
+  const cancelledExisting = existingSchedules.filter((schedule) =>
+    isCancelledSiteSchedule(schedule.date, schedule.venue)
+  )
+
+  if (cancelledExisting.length > 0) {
+    console.info("[ScheduleSync] 취소된 일정을 DB에서 제거합니다.", {
+      count: cancelledExisting.length,
+      dates: cancelledExisting.map((schedule) => `${schedule.date} ${schedule.venue}`),
+    })
+
+    if (isSupabaseConfigured()) {
+      await Promise.all(cancelledExisting.map((schedule) => deleteScheduleFromDb(schedule.id)))
+    }
+  }
+
+  const upcomingSiteSchedules = filterCancelledSiteSchedules(
+    siteSchedules.filter((siteSchedule) => isUpcomingSchedule(siteSchedule.date))
+  )
   // 지난 일정도 DB·노션에는 그대로 보존합니다. (화면 표시는 finalizeSchedules에서 숨김 처리)
-  const schedules = [...existingSchedules]
+  const schedules = existingSchedules.filter(
+    (schedule) => !isCancelledSiteSchedule(schedule.date, schedule.venue)
+  )
   const now = new Date().toISOString()
   let addedCount = 0
   // 실제로 새로 추가되거나 변경된 일정만 모읍니다. (불필요한 DB/노션 쓰기를 막아 로딩 속도 개선)
