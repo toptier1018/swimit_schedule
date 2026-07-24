@@ -17,26 +17,6 @@ interface SourceSchedule {
   scheduleSummaryLines: string[]
 }
 
-interface SourceLane {
-  lane: string
-  title: string
-  closed?: boolean
-}
-
-type SourceTable = Record<string, Array<{
-  session: string
-  time: string
-  lanes: SourceLane[]
-}>>
-
-const SEAT_STATUS_BY_LANE: Record<string, string> = {
-  "1레인": "1자리 남음",
-  "2레인": "마감임박",
-  "3레인": "2자리 남음",
-  "4레인": "마감임박",
-  "5레인": "1자리 남음",
-}
-
 const CENTER_MARKERS = [
   {
     region: "경기 김포",
@@ -148,21 +128,21 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
     ]
   }
 
-  if (region.includes("인천")) {
+  if (region.includes("인천") || region.includes("청라")) {
     return [
-      createClass(prefix, 1, "1레인", "콘텐츠 촬영", time, "", "촬영", "박준희"),
-      createClass(prefix, 2, "2레인", "콘텐츠 촬영", time, "", "촬영", "박준희"),
-      createClass(prefix, 3, "3레인", "접영 A (초급)", time, "2자리 남음", "결제가능"),
-      createClass(prefix, 4, "4레인", "자유형 B (중급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "접영 A (초급)", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "자유형 A (초급)", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능"),
     ]
   }
 
   if (region.includes("동탄")) {
     return [
-      createClass(prefix, 1, "1레인", "접영", time, "1자리 남음", "결제가능", "신준혁"),
+      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능"),
       createClass(prefix, 2, "2레인", "접영", time, "마감임박", "결제가능"),
       createClass(prefix, 3, "3레인", "자유형", time, "2자리 남음", "결제가능"),
-      createClass(prefix, 4, "4레인", "촬영", time, "", "촬영", "김진훈"),
+      createClass(prefix, 4, "4레인", "접영 B (중급)", time, "마감임박", "결제가능"),
     ]
   }
 
@@ -266,6 +246,7 @@ function getVenue(location: string, venue: string) {
   if (location.includes("삼정") || location.includes("은평")) return normalizeVenueName("삼정스포츠 수영장")
   if (location.includes("청라")) return normalizeVenueName("청라스카이스위밍")
   if (location.includes("스윔스튜디오제이") || location.includes("동탄")) return normalizeVenueName("스윔스튜디오제이")
+  if (location.includes("부산") || venue.includes("더스포츠센터")) return normalizeVenueName("더스포츠센터")
   return normalizeVenueName(location || venue)
 }
 
@@ -273,7 +254,9 @@ function getClassPrefix(source: SourceSchedule, date: string) {
   if (source.locationCode === "김포") return `swimit-gimpo-${date.replaceAll("-", "")}`
   if (source.locationCode === "화성") return `swimit-hwaseong-${date.replaceAll("-", "")}`
   if (source.locationCode === "목동") return `swimit-mokdong-${date.replaceAll("-", "")}`
-  if (source.locationCode === "인천") return `swimit-cheongna-${date.replaceAll("-", "")}`
+  if (source.locationCode === "인천" || source.locationCode === "청라") {
+    return `swimit-cheongna-${date.replaceAll("-", "")}`
+  }
   if (source.locationCode === "동탄") return `swimit-dongtan-${date.replaceAll("-", "")}`
   return `swimit-${source.id}-${date.replaceAll("-", "")}`
 }
@@ -284,15 +267,44 @@ function getScriptUrls(html: string) {
   })
 }
 
+function extractScheduleArray(script: string): string | null {
+  const startMatch = /(?:let|const|var)\s+\w+=(\[\{id:)/.exec(script)
+  if (!startMatch || startMatch.index == null) return null
+
+  const start = startMatch.index + startMatch[0].indexOf("[")
+  let depth = 0
+  let quote = ""
+  let escaped = false
+
+  for (let index = start; index < script.length; index += 1) {
+    const character = script[index]
+    if (quote) {
+      if (escaped) escaped = false
+      else if (character === "\\") escaped = true
+      else if (character === quote) quote = ""
+      continue
+    }
+
+    if (character === "\"" || character === "'" || character === "`") {
+      quote = character
+      continue
+    }
+    if (character === "[") depth += 1
+    if (character === "]") depth -= 1
+    if (depth === 0) return script.slice(start, index + 1)
+  }
+
+  return null
+}
+
 function extractEmbeddedSource(script: string) {
-  const match = script.match(/let\s+\w+=(\[\{id:[\s\S]*?scheduleSummaryLines:[\s\S]*?\}\]),\w+=({[\s\S]*?}),\w+=\(\)=>/)
-  if (!match) return null
+  const scheduleArray = extractScheduleArray(script)
+  if (!scheduleArray || !scheduleArray.includes("scheduleSummaryLines")) return null
 
   // The schedule app stores its data as JavaScript literals in the Next.js chunk.
-  const sourceSchedules = Function(`"use strict"; return (${match[1]})`)() as SourceSchedule[]
-  const sourceTable = Function(`"use strict"; return (${match[2]})`)() as SourceTable
+  const sourceSchedules = Function(`"use strict"; return (${scheduleArray})`)() as SourceSchedule[]
 
-  return { sourceSchedules, sourceTable }
+  return { sourceSchedules }
 }
 
 async function parseEmbeddedSchedules(html: string) {
@@ -313,28 +325,18 @@ async function parseEmbeddedSchedules(html: string) {
       const date = makeDate(source.year, String(source.month), String(source.dateNum))
       if (!isUpcomingSchedule(date)) return []
 
-      const sourceSessions = embedded.sourceTable[String(source.id)] || []
-      const firstTime = source.scheduleSummaryLines[0]?.replace(/^1부\s*/, "").replace(/\s+/g, "") || sourceSessions[0]?.time.replace(/\s+/g, "")
+      const firstTime = source.scheduleSummaryLines[0]?.replace(/^1부\s*/, "").replace(/\s+/g, "")
       if (!firstTime) return []
 
       const classPrefix = getClassPrefix(source, date)
-      const classes = sourceSessions.flatMap((session, sessionIndex) =>
-        session.lanes.map((lane, laneIndex) => {
-          const time = session.time.replace(/\s+/g, "")
-          const isClosed = Boolean(lane.closed) || !lane.title
-          const className = isClosed ? "운영 없음" : lane.title
-
-          return createClass(
-            classPrefix,
-            sessionIndex * 10 + laneIndex + 1,
-            lane.lane,
-            className,
-            time,
-            isClosed ? "" : SEAT_STATUS_BY_LANE[lane.lane] || "마감임박",
-            isClosed ? "운영 없음" : "결제가능"
-          )
-        })
-      )
+      // 원본 사이트의 일정 목록에는 레인별 제목이 항상 포함되지 않아,
+      // 지역별 기본 시간표를 사용합니다. 코치 배정은 빈 값으로 생성합니다.
+      const classes = createLaneClasses(classPrefix, firstTime, source.locationCode)
+      console.info("[SwimitSource] 코치 미배정 기본 시간표를 생성했습니다.", {
+        date,
+        venue: getVenue(source.location, source.venue),
+        classCount: classes.length,
+      })
 
       return [
         {

@@ -65,6 +65,16 @@ const VENUE_PLACES: Record<string, VenuePlace> = {
     lon: 127.108,
     name: "경기 동탄 · 스윔스튜디오제이",
   },
+  "부산 해운대 · 더스포츠센터": {
+    lat: 35.175,
+    lon: 129.127,
+    name: "부산 해운대 · 더스포츠센터",
+  },
+  "더스포츠센터": {
+    lat: 35.175,
+    lon: 129.127,
+    name: "부산 해운대 · 더스포츠센터",
+  },
 }
 
 const DEFAULT_PLACE: VenuePlace = {

@@ -5,6 +5,7 @@ const VENUE_DISPLAY_BY_KEY: Record<string, string> = {
   "삼정스포츠 수영장": "서울 은평구 · 삼정스포츠 수영장",
   "청라스카이스위밍": "인천 청라 · 청라스카이스위밍",
   "스윔스튜디오제이": "경기 동탄 · 스윔스튜디오제이",
+  "더스포츠센터": "부산 해운대 · 더스포츠센터",
 }
 
 const REGION_DISPLAY_BY_KEY: Record<string, string> = {
@@ -15,6 +16,7 @@ const REGION_DISPLAY_BY_KEY: Record<string, string> = {
   "서울 은평구": "서울 은평구",
   인천: "인천 청라",
   동탄: "경기 동탄",
+  부산: "부산 해운대",
 }
 
 export function normalizeRegionName(region: string): string {
