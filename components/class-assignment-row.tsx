@@ -123,9 +123,8 @@ export function ClassAssignmentRow({
         open={isConfirmOpen}
         coachName={item.coachName}
         classLabel={classLabel}
-        initialSupplies={item.studentSupplies}
         onOpenChange={setIsConfirmOpen}
-        onConfirm={(studentSupplies) => onClassCheck(scheduleId, item.id, true, studentSupplies)}
+        onConfirm={() => onClassCheck(scheduleId, item.id, true, item.studentSupplies)}
       />
 
       <AssignmentCancelModal
