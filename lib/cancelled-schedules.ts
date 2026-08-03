@@ -3,6 +3,7 @@ import { normalizeVenueName } from "@/lib/venue-display"
 // 진행하지 않기로 확정된 일정 (스윔잇 원본 사이트에 있어도 목록에 표시하지 않음)
 export const CANCELLED_SITE_SCHEDULES = [
   { date: "2026-08-09", venue: "서울 은평구 · 삼정스포츠 수영장" },
+  { date: "2026-08-16", venue: "인천 청라 · 청라스카이스위밍" },
 ]
 
 export function isCancelledSiteSchedule(date: string, venue: string): boolean {
