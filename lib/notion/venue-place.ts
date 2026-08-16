@@ -75,6 +75,16 @@ const VENUE_PLACES: Record<string, VenuePlace> = {
     lon: 129.127,
     name: "부산 해운대 · 더스포츠센터",
   },
+  "부산 · 조이풀스윔": {
+    lat: 35.168,
+    lon: 129.01,
+    name: "부산 · 조이풀스윔",
+  },
+  "조이풀스윔": {
+    lat: 35.168,
+    lon: 129.01,
+    name: "부산 · 조이풀스윔",
+  },
 }
 
 const DEFAULT_PLACE: VenuePlace = {

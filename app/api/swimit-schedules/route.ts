@@ -246,7 +246,7 @@ function getVenue(location: string, venue: string) {
   if (location.includes("삼정") || location.includes("은평")) return normalizeVenueName("삼정스포츠 수영장")
   if (location.includes("청라")) return normalizeVenueName("청라스카이스위밍")
   if (location.includes("스윔스튜디오제이") || location.includes("동탄")) return normalizeVenueName("스윔스튜디오제이")
-  if (location.includes("부산") || venue.includes("더스포츠센터")) return normalizeVenueName("더스포츠센터")
+  if (location.includes("부산") || venue.includes("조이풀스윔")) return normalizeVenueName("조이풀스윔")
   return normalizeVenueName(location || venue)
 }
 
@@ -325,7 +325,10 @@ async function parseEmbeddedSchedules(html: string) {
       const date = makeDate(source.year, String(source.month), String(source.dateNum))
       if (!isUpcomingSchedule(date)) return []
 
-      const firstTime = source.scheduleSummaryLines[0]?.replace(/^1부\s*/, "").replace(/\s+/g, "")
+      const firstSummary = source.scheduleSummaryLines[0] ?? ""
+      const firstTime =
+        firstSummary.match(/(\d{1,2}:\d{2}\s*~\s*\d{1,2}:\d{2})/)?.[1]?.replace(/\s+/g, "") ||
+        firstSummary.replace(/^1부\s*/, "").replace(/\s+/g, "")
       if (!firstTime) return []
 
       const classPrefix = getClassPrefix(source, date)
