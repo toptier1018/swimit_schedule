@@ -112,6 +112,8 @@ function createLaneClasses(prefix: string, time: string, region: string): Schedu
       createClass(prefix, 2, "2레인", "접영", time, "마감임박", "결제가능"),
       createClass(prefix, 3, "3레인", "자유형", time, "2자리 남음", "결제가능"),
       createClass(prefix, 4, "4레인", "자유형", time, "마감임박", "결제가능"),
+      createClass(prefix, 5, "5레인", "저항 진단 프로그램", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 6, "6레인", "저항 진단 프로그램", time, "마감임박", "결제가능"),
     ]
   }
 
