@@ -54,6 +54,15 @@ function createSamjeongLaneClasses(prefix: string, time: string): ScheduleClass[
 }
 
 function createSwimitLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
+  if (prefix.includes("mokdong-20260830")) {
+    return [
+      createClass(prefix, 1, "1레인", "평영", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "접영", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "자유형", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "자유형", time, "마감임박", "결제가능"),
+    ]
+  }
+
   if (region.includes("화성")) {
     return [
       createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
