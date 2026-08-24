@@ -308,10 +308,16 @@ function shouldReplaceSiteClasses(schedule: Schedule) {
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
   // 같은 날짜 + 같은 장소면 동일 일정으로 봅니다.
   // (지역명을 "은평" -> "서울 은평구"처럼 바꿔도 중복이 생기지 않도록 region은 비교하지 않습니다.)
-  return (
-    schedule.date === siteSchedule.date &&
+  if (schedule.date !== siteSchedule.date) return false
+
+  const isSameVenue =
     normalizeVenueName(schedule.venue) === normalizeVenueName(siteSchedule.venue)
-  )
+  const isSameAddress =
+    Boolean(schedule.address && siteSchedule.address) &&
+    schedule.address.trim() === siteSchedule.address.trim()
+
+  // 원본 사이트의 장소명만 바뀌어도 같은 주소·날짜의 일정은 중복 생성하지 않습니다.
+  return isSameVenue || isSameAddress
 }
 
 function getTodayKeyInKorea() {
