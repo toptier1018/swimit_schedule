@@ -106,6 +106,14 @@ function createClass(
 }
 
 function createLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
+  if (prefix.includes("dongtan-20260919")) {
+    return [
+      createClass(prefix, 1, "1레인", "자유형", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "평영", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "접영", time, "2자리 남음", "결제가능"),
+    ]
+  }
+
   if (prefix.includes("mokdong-20260830")) {
     return [
       createClass(prefix, 1, "1레인", "평영", time, "1자리 남음", "결제가능"),
@@ -256,6 +264,7 @@ function getVenue(location: string, venue: string) {
   if (location.includes("김포")) return normalizeVenueName("김포 아스타스포츠센터")
   if (location.includes("삼정") || location.includes("은평")) return normalizeVenueName("삼정스포츠 수영장")
   if (location.includes("청라")) return normalizeVenueName("청라스카이스위밍")
+  if (location.includes("샤크베이") || venue.includes("샤크베이")) return normalizeVenueName("샤크베이 1호점")
   if (location.includes("스윔스튜디오제이") || location.includes("동탄")) return normalizeVenueName("스윔스튜디오제이")
   if (location.includes("부산") || venue.includes("조이풀스윔")) return normalizeVenueName("조이풀스윔")
   return normalizeVenueName(location || venue)
