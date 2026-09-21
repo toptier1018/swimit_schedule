@@ -106,6 +106,16 @@ function createClass(
 }
 
 function createLaneClasses(prefix: string, time: string, region: string): ScheduleClass[] {
+  if (prefix.includes("20261004")) {
+    return [
+      createClass(prefix, 1, "1레인", "평영 A (초급)", time, "1자리 남음", "결제가능", "김민재"),
+      createClass(prefix, 2, "2레인", "접영 A (초급)", time, "마감임박", "결제가능", "이승윤"),
+      createClass(prefix, 3, "3레인", "운영 없음", time, "", "운영 없음"),
+      createClass(prefix, 4, "4레인", "운영 없음", time, "", "운영 없음"),
+      createClass(prefix, 5, "5레인", "운영 없음", time, "", "운영 없음"),
+    ]
+  }
+
   if (prefix.includes("mokdong-20260920")) {
     return [
       createClass(prefix, 1, "1레인", "평영", time, "1자리 남음", "결제가능"),
