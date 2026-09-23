@@ -93,6 +93,15 @@ function createSwimitLaneClasses(prefix: string, time: string, region: string): 
     ]
   }
 
+  if (prefix.includes("dongtan-20261025")) {
+    return [
+      createClass(prefix, 1, "1레인", "자유형", time, "1자리 남음", "결제가능"),
+      createClass(prefix, 2, "2레인", "평영", time, "마감임박", "결제가능"),
+      createClass(prefix, 3, "3레인", "접영", time, "2자리 남음", "결제가능"),
+      createClass(prefix, 4, "4레인", "저항 진단 프로그램", time, "1자리 남음", "결제가능"),
+    ]
+  }
+
   if (region.includes("화성")) {
     return [
       createClass(prefix, 1, "1레인", "운영 없음", time, "", "운영 없음"),
@@ -263,6 +272,16 @@ const SWIMIT_SITE_SCHEDULES: Array<Omit<Schedule, "id" | "createdAt" | "isConfir
     coachName: "",
     classes: createSwimitLaneClasses("swimit-mokdong-20260726", "10:00~12:00", "목동"),
   },
+  {
+    date: "2026-10-25",
+    region: "경기 동탄",
+    venue: "경기 동탄 · 스윔스튜디오제이",
+    address: "경기도 화성시 동탄구 동탄신리천로 414 경서타워 4층 스윔스튜디오제이",
+    className: "수영 특강 일정",
+    time: "14:00~16:00",
+    coachName: "",
+    classes: createSwimitLaneClasses("swimit-dongtan-20261025", "14:00~16:00", "동탄"),
+  },
 ]
 
 interface SwimitSourceResponse {
@@ -323,6 +342,44 @@ function normalizeSchedule(schedule: Schedule): Schedule {
 
 function shouldReplaceSiteClasses(schedule: Schedule) {
   return schedule.classes.length === 1 && schedule.classes[0]?.name === "1부"
+}
+
+function applyKnownScheduleCorrections(schedule: Schedule): Schedule {
+  const isDongtanOctober25 =
+    schedule.date === "2026-10-25" &&
+    normalizeVenueName(schedule.venue) === normalizeVenueName("스윔스튜디오제이")
+
+  if (!isDongtanOctober25) return schedule
+
+  const existingFourthLane = schedule.classes.find((item) => item.lane === "4레인")
+  const fourthLane: ScheduleClass = existingFourthLane
+    ? {
+        ...existingFourthLane,
+        name: "저항 진단 프로그램",
+        time: schedule.time,
+        isOpen: true,
+      }
+    : createClass(
+        "swimit-dongtan-20261025",
+        4,
+        "4레인",
+        "저항 진단 프로그램",
+        schedule.time,
+        "1자리 남음",
+        "결제가능"
+      )
+
+  const classes = schedule.classes.some((item) => item.lane === "4레인")
+    ? schedule.classes.map((item) => (item.lane === "4레인" ? fourthLane : item))
+    : [...schedule.classes, fourthLane]
+
+  console.info("[ScheduleSync] 10월 25일 동탄 저항 진단 프로그램을 1부 시간으로 합쳤습니다.", {
+    scheduleId: schedule.id,
+    time: schedule.time,
+    preservedCoach: Boolean(fourthLane.coachName),
+  })
+
+  return { ...schedule, classes }
 }
 
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
@@ -741,18 +798,7 @@ async function mergeSwimitSchedules(
       const existingSchedule = schedules[existingIndex]
       const shouldReplaceClasses = shouldReplaceSiteClasses(existingSchedule)
       const nextClasses = shouldReplaceClasses ? siteSchedule.classes : existingSchedule.classes
-      const classChanged = JSON.stringify(existingSchedule.classes) !== JSON.stringify(nextClasses)
-      const metaChanged =
-        existingSchedule.region !== siteSchedule.region ||
-        existingSchedule.className !== siteSchedule.className ||
-        existingSchedule.time !== siteSchedule.time ||
-        (Boolean(siteSchedule.address) && existingSchedule.address !== siteSchedule.address)
-
-      if (!classChanged && !metaChanged) {
-        return
-      }
-
-      const updatedSchedule = normalizeSchedule({
+      const candidateSchedule = applyKnownScheduleCorrections(normalizeSchedule({
         ...existingSchedule,
         region: siteSchedule.region || existingSchedule.region,
         className: siteSchedule.className,
@@ -760,8 +806,23 @@ async function mergeSwimitSchedules(
         address: siteSchedule.address || existingSchedule.address,
         // Supabase에 저장된 기존 배정(코치명, 확인 상태, 준비물)은 원본 사이트가 덮어쓰지 않습니다.
         classes: nextClasses,
-        updatedAt: classChanged || metaChanged ? now : existingSchedule.updatedAt,
-      })
+      }))
+      const classChanged =
+        JSON.stringify(existingSchedule.classes) !== JSON.stringify(candidateSchedule.classes)
+      const metaChanged =
+        existingSchedule.region !== candidateSchedule.region ||
+        existingSchedule.className !== candidateSchedule.className ||
+        existingSchedule.time !== candidateSchedule.time ||
+        existingSchedule.address !== candidateSchedule.address
+
+      if (!classChanged && !metaChanged) {
+        return
+      }
+
+      const updatedSchedule = {
+        ...candidateSchedule,
+        updatedAt: now,
+      }
 
       schedules[existingIndex] = updatedSchedule
       changedSchedules.push(updatedSchedule)
@@ -772,12 +833,12 @@ async function mergeSwimitSchedules(
       return
     }
 
-    const newSchedule = normalizeSchedule({
+    const newSchedule = applyKnownScheduleCorrections(normalizeSchedule({
       ...siteSchedule,
       id: createId(),
       isConfirmed: false,
       createdAt: now,
-    })
+    }))
     schedules.push(newSchedule)
     changedSchedules.push(newSchedule)
     addedCount += 1
