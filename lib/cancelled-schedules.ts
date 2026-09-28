@@ -4,6 +4,7 @@ import { normalizeVenueName } from "@/lib/venue-display"
 export const CANCELLED_SITE_SCHEDULES = [
   { date: "2026-08-09", venue: "서울 은평구 · 삼정스포츠 수영장" },
   { date: "2026-08-16", venue: "인천 청라 · 청라스카이스위밍" },
+  { date: "2026-10-11", venue: "서울 중구 · 스포빌키즈쿠아" },
 ]
 
 export function isCancelledSiteSchedule(date: string, venue: string): boolean {
