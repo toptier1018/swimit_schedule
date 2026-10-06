@@ -802,13 +802,24 @@ async function mergeSwimitSchedules(
     siteSchedules.filter((siteSchedule) => isUpcomingSchedule(siteSchedule.date))
   )
   // 지난 일정도 DB·노션에는 그대로 보존합니다. (화면 표시는 finalizeSchedules에서 숨김 처리)
-  const schedules = existingSchedules.filter(
+  const existingActiveSchedules = existingSchedules.filter(
     (schedule) => !isCancelledSiteSchedule(schedule.date, schedule.venue)
   )
   const now = new Date().toISOString()
   let addedCount = 0
   // 실제로 새로 추가되거나 변경된 일정만 모읍니다. (불필요한 DB/노션 쓰기를 막아 로딩 속도 개선)
-  const changedSchedules: Schedule[] = []
+  const schedules = existingActiveSchedules.map(applyKnownScheduleCorrections)
+  const changedSchedules: Schedule[] = schedules.filter(
+    (schedule, index) =>
+      JSON.stringify(schedule.classes) !== JSON.stringify(existingActiveSchedules[index]?.classes)
+  )
+
+  if (changedSchedules.length > 0) {
+    console.info("[ScheduleSync] 저장된 일정에 수동 변경 사항을 반영합니다.", {
+      count: changedSchedules.length,
+      scheduleIds: changedSchedules.map((schedule) => schedule.id),
+    })
+  }
 
   upcomingSiteSchedules.forEach((siteSchedule) => {
     const existingIndex = schedules.findIndex((schedule) => isSameSiteSchedule(schedule, siteSchedule))
