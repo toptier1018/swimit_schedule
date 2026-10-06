@@ -349,37 +349,55 @@ function applyKnownScheduleCorrections(schedule: Schedule): Schedule {
     schedule.date === "2026-10-25" &&
     normalizeVenueName(schedule.venue) === normalizeVenueName("스윔스튜디오제이")
 
-  if (!isDongtanOctober25) return schedule
+  let correctedSchedule = schedule
 
-  const existingFourthLane = schedule.classes.find((item) => item.lane === "4레인")
-  const fourthLane: ScheduleClass = existingFourthLane
-    ? {
-        ...existingFourthLane,
-        name: "저항 진단 프로그램",
-        time: schedule.time,
-        isOpen: true,
-      }
-    : createClass(
-        "swimit-dongtan-20261025",
-        4,
-        "4레인",
-        "저항 진단 프로그램",
-        schedule.time,
-        "1자리 남음",
-        "결제가능"
-      )
+  if (isDongtanOctober25) {
+    const existingFourthLane = schedule.classes.find((item) => item.lane === "4레인")
+    const fourthLane: ScheduleClass = existingFourthLane
+      ? {
+          ...existingFourthLane,
+          name: "저항 진단 프로그램",
+          time: schedule.time,
+          isOpen: true,
+        }
+      : createClass(
+          "swimit-dongtan-20261025",
+          4,
+          "4레인",
+          "저항 진단 프로그램",
+          schedule.time,
+          "1자리 남음",
+          "결제가능"
+        )
 
-  const classes = schedule.classes.some((item) => item.lane === "4레인")
-    ? schedule.classes.map((item) => (item.lane === "4레인" ? fourthLane : item))
-    : [...schedule.classes, fourthLane]
+    const classes = schedule.classes.some((item) => item.lane === "4레인")
+      ? schedule.classes.map((item) => (item.lane === "4레인" ? fourthLane : item))
+      : [...schedule.classes, fourthLane]
 
-  console.info("[ScheduleSync] 10월 25일 동탄 저항 진단 프로그램을 1부 시간으로 합쳤습니다.", {
-    scheduleId: schedule.id,
-    time: schedule.time,
-    preservedCoach: Boolean(fourthLane.coachName),
-  })
+    console.info("[ScheduleSync] 10월 25일 동탄 저항 진단 프로그램을 1부 시간으로 합쳤습니다.", {
+      scheduleId: schedule.id,
+      time: schedule.time,
+      preservedCoach: Boolean(fourthLane.coachName),
+    })
 
-  return { ...schedule, classes }
+    correctedSchedule = { ...schedule, classes }
+  }
+
+  if (correctedSchedule.date !== "2026-10-18") return correctedSchedule
+
+  const targetClasses = correctedSchedule.classes.filter((item) => item.name === "접영 B (중급)")
+  const changedClasses = correctedSchedule.classes.map((item) =>
+    item.name === "접영 B (중급)" ? { ...item, name: "스타트" } : item
+  )
+
+  if (targetClasses.length > 0) {
+    console.info("[ScheduleSync] 10월 18일 접영 B (중급)을 스타트로 변경했습니다.", {
+      scheduleId: correctedSchedule.id,
+      changedCount: targetClasses.length,
+    })
+  }
+
+  return { ...correctedSchedule, classes: changedClasses }
 }
 
 function isSameSiteSchedule(schedule: Schedule, siteSchedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">) {
