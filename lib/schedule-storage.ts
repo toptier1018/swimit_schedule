@@ -383,6 +383,43 @@ function applyKnownScheduleCorrections(schedule: Schedule): Schedule {
     correctedSchedule = { ...schedule, classes }
   }
 
+  if (correctedSchedule.date === "2026-11-08") {
+    const laneDefinitions = [
+      { lane: "1레인", name: "접영" },
+      { lane: "2레인", name: "자유형" },
+    ]
+    const classes = laneDefinitions.map(({ lane, name }, index) => {
+      const existingClass = correctedSchedule.classes.find((item) => item.lane === lane)
+      return existingClass
+        ? {
+            ...existingClass,
+            name,
+            time: correctedSchedule.time,
+            isOpen: true,
+            bookingStatus:
+              existingClass.bookingStatus === "운영 없음" ? "결제가능" : existingClass.bookingStatus,
+          }
+        : createClass(
+            "swimit-20261108",
+            index + 1,
+            lane,
+            name,
+            correctedSchedule.time,
+            "",
+            "결제가능"
+          )
+    })
+
+    if (JSON.stringify(classes) !== JSON.stringify(correctedSchedule.classes)) {
+      console.info("[ScheduleSync] 11월 8일 특강을 접영·자유형 2개 레인으로 변경했습니다.", {
+        scheduleId: correctedSchedule.id,
+        lanes: classes.map((item) => `${item.lane} ${item.name}`),
+      })
+    }
+
+    return { ...correctedSchedule, classes }
+  }
+
   if (correctedSchedule.date !== "2026-10-18") return correctedSchedule
 
   const targetClasses = correctedSchedule.classes.filter((item) => item.name === "접영 B (중급)")
