@@ -8,15 +8,13 @@ import { ScheduleList } from "@/components/schedule-list"
 import { CalendarView } from "@/components/calendar-view"
 import { DateSchedulesModal } from "@/components/date-schedules-modal"
 import { ChangeNotificationModal } from "@/components/change-notification-modal"
-import { downloadPastSchedulesAsCsv } from "@/lib/schedule-export"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin, Calendar, Plus, RefreshCw, CheckCircle2, Download } from "lucide-react"
+import { MapPin, Calendar, Plus, RefreshCw, CheckCircle2 } from "lucide-react"
 
 export default function Home() {
   const { 
     schedules, 
-    pastSchedules,
     isLoading, 
     pendingChange,
     addSchedule, 
@@ -85,10 +83,6 @@ export default function Home() {
     syncFromSite()
   }
 
-  const handlePastSchedulesExport = () => {
-    downloadPastSchedulesAsCsv(pastSchedules)
-  }
-
   const handleDateSelect = (date: string, daySchedules: Schedule[]) => {
     setSelectedDate(date)
     setSelectedSchedules(daySchedules)
@@ -136,15 +130,6 @@ export default function Home() {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:flex">
-              <Button
-                variant="secondary"
-                onClick={handlePastSchedulesExport}
-                disabled={pastSchedules.length === 0}
-                className="bg-card text-foreground hover:bg-card/90"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                지난 일정 엑셀 다운로드
-              </Button>
               {isDeveloperMode && (
                 <>
                   <Button
