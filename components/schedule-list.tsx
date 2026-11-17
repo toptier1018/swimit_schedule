@@ -16,8 +16,6 @@ interface ScheduleListProps {
   ) => void
   onClassCancel: (scheduleId: string, classId: string, reason: string) => void
   isDeveloperMode: boolean
-  isReadOnly?: boolean
-  sortDirection?: "ascending" | "descending"
 }
 
 export function ScheduleList({
@@ -28,8 +26,6 @@ export function ScheduleList({
   onClassCheck,
   onClassCancel,
   isDeveloperMode,
-  isReadOnly = false,
-  sortDirection = "ascending",
 }: ScheduleListProps) {
   if (schedules.length === 0) {
     return (
@@ -41,9 +37,8 @@ export function ScheduleList({
 
   const sortedSchedules = [...schedules].sort((a, b) => {
     const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime()
-    const timeDiff = (a.time || "").localeCompare(b.time || "")
-    const result = dateDiff !== 0 ? dateDiff : timeDiff
-    return sortDirection === "ascending" ? result : -result
+    if (dateDiff !== 0) return dateDiff
+    return (a.time || "").localeCompare(b.time || "")
   })
 
   return (
@@ -58,7 +53,6 @@ export function ScheduleList({
           onClassCheck={onClassCheck}
           onClassCancel={onClassCancel}
           isDeveloperMode={isDeveloperMode}
-          isReadOnly={isReadOnly}
         />
       ))}
     </div>

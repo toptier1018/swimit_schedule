@@ -31,7 +31,6 @@ interface ScheduleCardProps {
   ) => void
   onClassCancel: (scheduleId: string, classId: string, reason: string) => void
   isDeveloperMode: boolean
-  isReadOnly?: boolean
 }
 
 export function ScheduleCard({
@@ -42,7 +41,6 @@ export function ScheduleCard({
   onClassCheck,
   onClassCancel,
   isDeveloperMode,
-  isReadOnly = false,
 }: ScheduleCardProps) {
   const [teacherTargetClass, setTeacherTargetClass] = useState<ScheduleClass | null>(null)
   const [teacherName, setTeacherName] = useState("")
@@ -141,9 +139,8 @@ export function ScheduleCard({
                   key={item.id}
                   scheduleId={schedule.id}
                   item={item}
-                  isDeveloperMode={isDeveloperMode && !isReadOnly}
-                  isReadOnly={isReadOnly}
-                  onEditTeacher={isDeveloperMode && !isReadOnly ? openTeacherDialog : undefined}
+                  isDeveloperMode={isDeveloperMode}
+                  onEditTeacher={isDeveloperMode ? openTeacherDialog : undefined}
                   onClassCheck={onClassCheck}
                   onClassCancel={onClassCancel}
                 />
@@ -163,7 +160,7 @@ export function ScheduleCard({
           </div>
         </div>
 
-        {isDeveloperMode && !isReadOnly && (
+        {isDeveloperMode && (
           <div className="flex border-t border-border">
             {!schedule.isConfirmed && (
               <Button

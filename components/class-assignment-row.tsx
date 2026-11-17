@@ -21,7 +21,6 @@ interface ClassAssignmentRowProps {
     studentSupplies?: string[]
   ) => void
   onClassCancel: (scheduleId: string, classId: string, reason: string) => void
-  isReadOnly?: boolean
 }
 
 export function ClassAssignmentRow({
@@ -31,7 +30,6 @@ export function ClassAssignmentRow({
   onEditTeacher,
   onClassCheck,
   onClassCancel,
-  isReadOnly = false,
 }: ClassAssignmentRowProps) {
   const [isCancelOpen, setIsCancelOpen] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
@@ -88,7 +86,7 @@ export function ClassAssignmentRow({
           </Badge>
         </div>
 
-        {!isDeveloperMode && !isReadOnly && item.isOpen && (
+        {!isDeveloperMode && item.isOpen && (
           <div className="mt-4 grid grid-cols-1 gap-2">
             {item.isCoachChecked ? (
               <Button

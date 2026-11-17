@@ -641,22 +641,6 @@ export async function getSchedules(): Promise<Schedule[]> {
   return finalizeSchedules(await syncSwimitSchedulesWithExisting(schedules))
 }
 
-export async function getPastSchedules(): Promise<Schedule[]> {
-  if (typeof window === "undefined") return []
-
-  const schedules = isSupabaseConfigured() ? await fetchAllSchedulesFromDb() : readLocalSchedules()
-  const pastSchedules = schedules
-    .map(normalizeSchedule)
-    .filter((schedule) => !isCancelledSiteSchedule(schedule.date, schedule.venue))
-    .filter((schedule) => !isScheduleVisibleNow(schedule.date, schedule.time))
-
-  console.info("[ScheduleHistory] 과거 특강 기록을 불러왔습니다.", {
-    count: pastSchedules.length,
-  })
-
-  return pastSchedules
-}
-
 export async function saveSchedule(
   schedule: Omit<Schedule, "id" | "createdAt" | "isConfirmed">
 ): Promise<Schedule> {

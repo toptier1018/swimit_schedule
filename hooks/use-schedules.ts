@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { Schedule, ScheduleChange } from "@/types/schedule"
 import {
   getSchedules,
-  getPastSchedules,
   saveSchedule,
   deleteSchedule,
   updateSchedule,
@@ -18,20 +17,14 @@ import {
 
 export function useSchedules() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [pastSchedules, setPastSchedules] = useState<Schedule[]>([])
   const [changes, setChanges] = useState<ScheduleChange[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [pendingChange, setPendingChange] = useState<ScheduleChange | null>(null)
 
   const refresh = useCallback(async () => {
     try {
-      const [nextSchedules, nextPastSchedules, nextChanges] = await Promise.all([
-        getSchedules(),
-        getPastSchedules(),
-        getChanges(),
-      ])
+      const [nextSchedules, nextChanges] = await Promise.all([getSchedules(), getChanges()])
       setSchedules(nextSchedules)
-      setPastSchedules(nextPastSchedules)
       setChanges(nextChanges)
     } catch (error) {
       console.error("[ScheduleSync] 데이터 새로고침 실패", error)
@@ -130,7 +123,6 @@ export function useSchedules() {
 
   return {
     schedules,
-    pastSchedules,
     changes,
     isLoading,
     pendingChange,
