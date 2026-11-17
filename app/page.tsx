@@ -10,11 +10,13 @@ import { DateSchedulesModal } from "@/components/date-schedules-modal"
 import { ChangeNotificationModal } from "@/components/change-notification-modal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, Calendar, Plus, RefreshCw, CheckCircle2 } from "lucide-react"
 
 export default function Home() {
   const { 
     schedules, 
+    pastSchedules,
     isLoading, 
     pendingChange,
     addSchedule, 
@@ -222,32 +224,73 @@ export default function Home() {
             </Card>
           </div>
 
-          {/* Schedule List (시간순) */}
+          {/* Schedule Lists */}
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4 text-primary">
-              <MapPin className="h-5 w-5" />
-              <h2 className="font-medium">다가오는 일정 (시간순)</h2>
-            </div>
+            <Tabs defaultValue="upcoming">
+              <TabsList className="mb-4 w-full">
+                <TabsTrigger value="upcoming" className="flex-1">
+                  다가오는 일정
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex-1">
+                  지난 일정 기록
+                </TabsTrigger>
+              </TabsList>
 
-            {sortedSchedules.length === 0 ? (
-              <Card className="border-border bg-card">
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>등록된 일정이 없습니다</p>
-                  <p className="text-sm mt-1">새 일정을 추가해주세요</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <ScheduleList
-                schedules={sortedSchedules}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onConfirm={handleConfirm}
-                onClassCheck={handleClassCheck}
-                onClassCancel={handleClassCancel}
-                isDeveloperMode={isDeveloperMode}
-              />
-            )}
+              <TabsContent value="upcoming">
+                <div className="mb-4 flex items-center gap-2 text-primary">
+                  <MapPin className="h-5 w-5" />
+                  <h2 className="font-medium">다가오는 일정 (시간순)</h2>
+                </div>
+                {sortedSchedules.length === 0 ? (
+                  <Card className="border-border bg-card">
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <Calendar className="mx-auto mb-4 h-12 w-12 opacity-50" />
+                      <p>등록된 일정이 없습니다</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <ScheduleList
+                    schedules={sortedSchedules}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onConfirm={handleConfirm}
+                    onClassCheck={handleClassCheck}
+                    onClassCancel={handleClassCancel}
+                    isDeveloperMode={isDeveloperMode}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="history">
+                <div className="mb-4 flex items-center gap-2 text-primary">
+                  <Calendar className="h-5 w-5" />
+                  <h2 className="font-medium">지난 일정 기록</h2>
+                </div>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  종료된 특강의 레인, 영법, 담당 코치 정보를 확인할 수 있습니다.
+                </p>
+                {pastSchedules.length === 0 ? (
+                  <Card className="border-border bg-card">
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <Calendar className="mx-auto mb-4 h-12 w-12 opacity-50" />
+                      <p>보관된 과거 일정이 없습니다</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <ScheduleList
+                    schedules={pastSchedules}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onConfirm={handleConfirm}
+                    onClassCheck={handleClassCheck}
+                    onClassCancel={handleClassCancel}
+                    isDeveloperMode={isDeveloperMode}
+                    isReadOnly
+                    sortDirection="descending"
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>
